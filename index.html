@@ -31,6 +31,7 @@ button{padding:12px 24px;border:0;border-radius:8px;font-size:16px;cursor:pointe
 import * as THREE from "three";
 import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/loaders/FBXLoader.js";
 
+const start=document.getElementById('start');
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x9db6c7);
 scene.fog=new THREE.Fog(0x9db6c7,45,140);
@@ -126,7 +127,16 @@ fbxLoader.load(
 );
 
 neighbor=makeNeighbor();
-// Collision bounds for the imported house. These are intentionally separate from visual geometry.\nif (!solids.some(s => s.name==='ImportedWallFront')) {\n  box('ImportedWallFront',0,4,-9,34,8,1,0xffffff);\n  box('ImportedWallBack',0,4,10,34,8,1,0xffffff);\n  box('ImportedWallLeft',-17,4,.5,1,8,20,0xffffff);\n  box('ImportedWallRight',17,4,.5,1,8,20,0xffffff);\n}\nhouseRoot.children.filter(o=>o.isMesh && o.name.startsWith('ImportedWall')).forEach(o=>{o.visible=false;});\n\nconst patrol=[new THREE.Vector3(-11,0,4),new THREE.Vector3(-11,0,-5),new THREE.Vector3(4,0,-5),new THREE.Vector3(11,0,5),new THREE.Vector3(3,0,7)];
+// Collision bounds for the imported house. These are intentionally separate from visual geometry.
+if (!solids.some(s => s.name==='ImportedWallFront')) {
+  box('ImportedWallFront',0,4,-9,34,8,1,0xffffff);
+  box('ImportedWallBack',0,4,10,34,8,1,0xffffff);
+  box('ImportedWallLeft',-17,4,.5,1,8,20,0xffffff);
+  box('ImportedWallRight',17,4,.5,1,8,20,0xffffff);
+}
+houseRoot.children.filter(o=>o.isMesh && o.name.startsWith('ImportedWall')).forEach(o=>{o.visible=false;});
+
+const patrol=[new THREE.Vector3(-11,0,4),new THREE.Vector3(-11,0,-5),new THREE.Vector3(4,0,-5),new THREE.Vector3(11,0,5),new THREE.Vector3(3,0,7)];
 
 function hitAt(pos){
  const r=.34;
@@ -187,7 +197,16 @@ function reset(){
 }
 addEventListener('keydown',e=>{keys.add(e.code);if(e.code==='KeyE'&&isLocked()&&!gameOver)interact();if(e.code==='KeyR'&&gameOver)reset();});
 addEventListener('keyup',e=>keys.delete(e.code));
-document.getElementById('play').onclick=()=>document.body.requestPointerLock();
+const playButton = document.getElementById('play');
+playButton.addEventListener('click', async () => {
+  try {
+    await document.body.requestPointerLock();
+  } catch (err) {
+    console.warn('Pointer lock was blocked:', err);
+    start.style.display='none';
+  }
+});
+
 document.addEventListener('mousemove',(e)=>{
   if(!isLocked()) return;
   yaw -= e.movementX * 0.0022;
