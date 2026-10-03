@@ -28,6 +28,8 @@ button{padding:12px 24px;border:0;border-radius:8px;font-size:16px;cursor:pointe
 <div id="ui"><div id="crosshair"></div><div id="objective">Objective: Get inside the house and explore.</div><div id="status">Neighbor: PATROLLING</div><div id="prompt"></div></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
 <script type="module">
+import * as THREE from "three";
+import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/loaders/FBXLoader.js";
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x9db6c7);
