@@ -87,6 +87,59 @@ function addHouse(){
  slab.position.x=1.3;slab.castShadow=true;pivot.add(slab);
  doors.push({pivot,open:false,start:0,end:-Math.PI/2});
 }
+
+function addRoadAndGrass(){
+ const environment=new THREE.Group();
+ environment.name='RoadAndGrass';
+
+ const grassMat=new THREE.MeshStandardMaterial({color:0x4f6f3b,roughness:1});
+ const grass=new THREE.Mesh(new THREE.PlaneGeometry(120,120),grassMat);
+ grass.rotation.x=-Math.PI/2;
+ grass.position.set(0,-0.03,2);
+ grass.receiveShadow=true;
+ environment.add(grass);
+
+ const roadMat=new THREE.MeshStandardMaterial({color:0x373737,roughness:.95});
+ const road=new THREE.Mesh(new THREE.PlaneGeometry(100,10),roadMat);
+ road.rotation.x=-Math.PI/2;
+ road.position.set(0,0.01,-15);
+ road.receiveShadow=true;
+ environment.add(road);
+
+ const lineMat=new THREE.MeshStandardMaterial({color:0xe9e0b5,roughness:.8});
+ for(let x=-45;x<46;x+=6){
+   const line=new THREE.Mesh(new THREE.BoxGeometry(3.2,.035,.12),lineMat);
+   line.position.set(x,0.035,-15);
+   line.receiveShadow=true;
+   environment.add(line);
+ }
+
+ const edgeMat=new THREE.MeshStandardMaterial({color:0xb9b9b9,roughness:.9});
+ for(const z of [-10,-20]){
+   const edge=new THREE.Mesh(new THREE.BoxGeometry(100,.08,.3),edgeMat);
+   edge.position.set(0,0.045,z);
+   edge.receiveShadow=true;
+   environment.add(edge);
+ }
+
+ // Driveway from the road toward the house entrance.
+ const driveway=new THREE.Mesh(new THREE.PlaneGeometry(7,10),new THREE.MeshStandardMaterial({color:0x555555,roughness:.95}));
+ driveway.rotation.x=-Math.PI/2;
+ driveway.position.set(0,0.015,-4.8);
+ driveway.receiveShadow=true;
+ environment.add(driveway);
+
+ // A simple paved path from the driveway to the front door.
+ const pathMat=new THREE.MeshStandardMaterial({color:0x8d8d86,roughness:.9});
+ const path=new THREE.Mesh(new THREE.PlaneGeometry(3,6),pathMat);
+ path.rotation.x=-Math.PI/2;
+ path.position.set(0,0.02,-9.2);
+ path.receiveShadow=true;
+ environment.add(path);
+
+ scene.add(environment);
+}
+
 function makeNeighbor(){
  const g=new THREE.Group();
  const body=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.4,.75),material(0x2d4f3b));body.position.y=1.2;g.add(body);
@@ -96,6 +149,7 @@ function makeNeighbor(){
  g.position.set(-11,0,4);scene.add(g);return g;
 }
 addHouse();
+addRoadAndGrass();
 
 // Load the supplied Act 1 FBX when it is uploaded to assets/House_Hello_Neighbor_Act1.fbx.
 // The fallback procedural house stays visible if the browser cannot load the asset.
