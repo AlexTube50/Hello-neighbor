@@ -1,35 +1,24 @@
-# Hello Neighbor — Act 1
+# Hello Neighbor: The Murder
 
-This repository contains a playable browser game prototype.
+## 🎮 Play the game
+
+**[PLAY HELLO NEIGHBOR: THE MURDER](https://alextube50.github.io/Hello-neighbor/)**
+
+This is the playable browser version of the game.
 
 ## Controls
 
-- Click PLAY
-- WASD = move
-- Mouse = look
-- Shift = sprint
-- Space = jump
-- E = open/close the front door
-- R = restart after being caught
+- Click **PLAY**
+- **WASD** — move
+- **Mouse** — look around
+- **Shift** — sprint
+- **Space** — jump
+- **E** — open/close the front door
+- **R** — restart after being caught
 
-## Play it online
+## GitHub Pages
 
-The repository includes a GitHub Actions workflow at
-`.github/workflows/pages.yml` that deploys the game to GitHub Pages
-when `main` changes.
+The repository includes a GitHub Actions workflow that deploys the game to GitHub Pages from the `main` branch.
 
-After GitHub Pages is enabled for the repository, the deployed site uses
-the repository's `index.html` as the game.
+The Play link above is the expected GitHub Pages address. GitHub Pages must be enabled/deployed in the repository for the link to become live.
 
-## Run locally
-
-You can also serve the repository with any simple static web server and
-open `index.html`.
-
-The game loads Three.js from jsDelivr, so an internet connection is
-needed for the 3D engine.
-
-## Project structure
-
-- `index.html` — game
-- `.github/workflows/pages.yml` — automatic GitHub Pages deployment
