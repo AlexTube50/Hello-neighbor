@@ -79,7 +79,7 @@ button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:1
     scene.fog = new THREE.Fog(0x9db7ca, 45, 150);
 
     camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 300);
-    camera.position.set(0,1.75,21);
+    camera.position.set(0,1.75,-25);
     camera.rotation.order = 'YXZ';
 
     renderer = new THREE.WebGLRenderer({antialias:true});
@@ -356,7 +356,7 @@ button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:1
   }
 
   function restart(){
-    camera.position.set(0,1.75,21);
+    camera.position.set(0,1.75,-25);
     yaw=0; pitch=0;
     camera.rotation.set(0,0,0);
     neighbor.position.copy(patrol[0]);
