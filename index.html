@@ -9,9 +9,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-f
 canvas{display:block;width:100%;height:100%;cursor:crosshair}
 #menu{
  position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
- background:#000;color:#fff;text-align:center
+ background:radial-gradient(circle at 50% 42%,#111 0%,#030303 45%,#000 78%);
+ color:#fff;text-align:center
 }
-#menuBox{min-width:340px;max-width:720px;padding:40px 48px}
+#menuBox{min-width:340px;max-width:780px;padding:48px 56px;text-shadow:0 2px 10px rgba(0,0,0,.9)}
+#menuBox:after{content:"";display:block;width:140px;height:1px;background:#555;margin:28px auto 0;box-shadow:0 0 18px #aaa}
 #menu h1{font-size:clamp(32px,5vw,58px);margin:0 0 18px;font-weight:800;letter-spacing:.4px}
 #menu p{font-size:17px;line-height:1.55;color:#d0d0d0;margin:8px 0}
 #play{
@@ -81,6 +83,7 @@ const hint = document.getElementById('hint');
 let W=innerWidth, H=innerHeight;
 let started=false, gameOver=false;
 let yaw=0, pitch=0;
+let cameraBob=0, walkCycle=0, elapsed=0;
 let lastTime=performance.now();
 let mouseLook=false;
 const keys=new Set();
@@ -159,6 +162,24 @@ function normAngle(a){
   while(a>Math.PI)a-=Math.PI*2;
   while(a<-Math.PI)a+=Math.PI*2;
   return a;
+}
+function getHorizon(){
+  return getHorizon()+cameraBob;
+}
+function hexToRgb(hex){
+  const n=parseInt(hex.slice(1),16);
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+}
+function rgbToCss(c){
+  return 'rgb('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+')';
+}
+function fogColor(rgb, amount){
+  const f={r:88,g:103,b:111};
+  return {
+    r:rgb.r*(1-amount)+f.r*amount,
+    g:rgb.g*(1-amount)+f.g*amount,
+    b:rgb.b*(1-amount)+f.b*amount
+  };
 }
 
 function pointInBox(px,py,b,margin=0){
@@ -371,15 +392,22 @@ function updatePlayer(dt){
   if(keys.has('KeyS')) ay+=1;
   if(keys.has('KeyA')) ax-=1;
   if(keys.has('KeyD')) ax+=1;
-  if(ax||ay){
+
+  const moving=!!(ax||ay);
+  if(moving){
     const l=Math.hypot(ax,ay);
     ax/=l; ay/=l;
-    // Camera-forward movement.
     const cs=Math.cos(yaw),sn=Math.sin(yaw);
     const worldX=ax*cs-ay*sn;
     const worldY=ax*sn+ay*cs;
-    const speed=(keys.has('ShiftLeft')||keys.has('ShiftRight'))?player.sprint:player.speed;
+    const sprinting=keys.has('ShiftLeft')||keys.has('ShiftRight');
+    const speed=sprinting?player.sprint:player.speed;
     moveWithCollision(worldX*speed*dt,worldY*speed*dt);
+    walkCycle += dt*(sprinting?13:9);
+    const targetBob=Math.sin(walkCycle)*2.2+(Math.sin(walkCycle*0.5)*0.8);
+    cameraBob += (targetBob-cameraBob)*Math.min(1,dt*10);
+  }else{
+    cameraBob += (0-cameraBob)*Math.min(1,dt*10);
   }
 
   if(player.grounded && keys.has('Space')){
@@ -396,7 +424,7 @@ function updatePlayer(dt){
 }
 
 function drawSky(){
-  const horizon=H*.48+pitch*H*.16;
+  const horizon=getHorizon();
   const sky=ctx.createLinearGradient(0,0,0,horizon);
   sky.addColorStop(0,'#6e8595');
   sky.addColorStop(1,'#b4c4cb');
@@ -414,16 +442,16 @@ function worldToScreen(wx,wy){
   const cy=dx*sn+dy*cs;
   if(cy>=-.01) return null;
   const sx=W/2 + (cx/(-cy))*W/(2*Math.tan(HALF_FOV));
-  const horizon=H*.48+pitch*H*.16;
+  const horizon=getHorizon();
   const sy=horizon - (player.h/(-cy))*H;
   return {x:sx,y:sy};
 }
 
 function drawFloor(){
-  const horizon=H*.48+pitch*H*.16;
+  const horizon=getHorizon();
   for(let sy=horizon+2;sy<H;sy+=3){
-    const denom=(sy-horizon);
-    if(denom<=0) continue;
+    const denom=sy-horizon;
+    if(denom<=0)continue;
     const dist=player.h*H/denom;
     const angLeft=yaw-HALF_FOV;
     const angRight=yaw+HALF_FOV;
@@ -431,18 +459,37 @@ function drawFloor(){
     const ly=player.y-Math.cos(angLeft)*dist;
     const rx=player.x+Math.sin(angRight)*dist;
     const ry=player.y-Math.cos(angRight)*dist;
-
     const mx=(lx+rx)/2, my=(ly+ry)/2;
-    let c='#5e7447';
-    if(Math.abs(my-ROAD_Y)<=ROAD_HALF) c='#3d3d3d';
-    if(Math.abs(my-ROAD_Y)<=ROAD_HALF && sy>horizon+24){
-      c='#3d3d3d';
-    }
-    ctx.fillStyle=c;
-    ctx.fillRect(0,sy,W,3);
 
-    if(Math.abs(my-ROAD_Y)<=ROAD_HALF && Math.floor(Math.abs(my-ROAD_Y)*3)%2===0){
-      ctx.fillStyle='#707070';
+    const road=Math.abs(my-ROAD_Y)<=ROAD_HALF;
+    if(road){
+      const wear=(Math.sin(mx*1.7+my*.8)+Math.sin(mx*4.9-my*1.4))*.5;
+      const v=Math.max(42,Math.min(68,54+wear*5));
+      ctx.fillStyle='rgb('+v+','+v+','+(v+2)+')';
+    }else{
+      const n=(Math.sin(mx*6.13+my*3.71)+Math.sin(mx*15.7-my*8.2)+Math.sin(mx*31.1+my*12.4))*.5;
+      const r=Math.max(48,Math.min(102,76+n*10));
+      const g=Math.max(65,Math.min(116,91+n*13));
+      const b=Math.max(38,Math.min(68,49+n*7));
+      ctx.fillStyle='rgb('+r+','+g+','+b+')';
+    }
+    ctx.fillRect(0,sy,W,3);
+  }
+
+  // Subtle grass blades near the player.
+  if(player.y>ROAD_Y){
+    for(let i=0;i<38;i++){
+      const gx=player.x+Math.sin(i*17.1+elapsed)*7;
+      const gy=player.y+5+(i%9)*1.4;
+      const p=worldToScreen(gx,gy);
+      if(p && p.y>getHorizon()){
+        const h=5+((i*13)%8);
+        ctx.strokeStyle='rgba(30,55,28,.55)';
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y);
+        ctx.lineTo(p.x+Math.sin(i)*2,p.y-h);
+        ctx.stroke();
+      }
     }
   }
 }
@@ -464,54 +511,75 @@ function drawRoadMarkings(){
 }
 
 function renderWalls(){
-  const horizon=H*.48+pitch*H*.16;
-  const halfW=W/2;
+  const horizon=getHorizon();
 
   for(let i=0;i<RAYS;i++){
     const cameraX=(i/(RAYS-1))-.5;
     const rayAngle=yaw+cameraX*FOV;
     const dx=Math.sin(rayAngle),dy=-Math.cos(rayAngle);
     let dist=sceneDistance(player.x,player.y,dx,dy);
-    dist*=Math.cos(cameraX*FOV); // remove fish-eye
-
+    dist*=Math.cos(cameraX*FOV);
     zBuffer[i]=dist;
 
     const wallH=Math.min(H*1.8,(player.h/dist)*H*1.35);
     const top=horizon-wallH;
     const bottom=horizon+wallH*.05;
-
-    // Determine a wall shade based on angle.
-    const facing=Math.abs(Math.cos(rayAngle));
-    const shade=Math.max(48,Math.floor(178*(.42+.58*facing)));
-
-    // Sample a little in front to identify house wall type.
     const sx=player.x+dx*(dist+.03);
     const sy=player.y+dy*(dist+.03);
-    let base='#a58f6d';
-    if(sy<-3.7) base='#b9a174';
-    if(sx<-7.7||sx>7.5) base='#9b835f';
-    if(sy>3.4) base='#8e7958';
 
-    ctx.fillStyle=base;
+    let base='#a58f6d';
+    if(sy<-3.7)base='#b9a174';
+    if(sx<-7.7||sx>7.5)base='#9b835f';
+    if(sy>3.4)base='#8e7958';
+
+    let rgb=hexToRgb(base);
+    const fog=Math.min(.82,Math.max(0,(dist-12)/42));
+    rgb=fogColor(rgb,fog);
+
+    ctx.fillStyle=rgbToCss(rgb);
     ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,bottom-top);
 
-    // Light strip on inner walls.
-    if(dist<9){
-      ctx.fillStyle='rgba(255,245,205,.06)';
+    // Painted/stucco panels and wood seams.
+    const panelPhase=Math.floor((sx+sy*1.7)*.55);
+    if(panelPhase%2===0 && wallH>24){
+      ctx.fillStyle='rgba(20,18,14,.10)';
+      ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,Math.max(1,wallH*.018));
+    }
+
+    // Front windows.
+    if(Math.abs(sy+4)<.5 && (((sx>-6.2&&sx<-2.1)||(sx>2.1&&sx<6.2)))){
+      const wxTop=top+wallH*.28;
+      const wxH=Math.max(6,wallH*.28);
+      ctx.fillStyle='rgba(22,42,51,.82)';
+      ctx.fillRect(i*(W/RAYS),wxTop,(W/RAYS)+1,wxH);
+      if(Math.floor(sx*2)%2===0){
+        ctx.fillStyle='rgba(190,214,220,.22)';
+        ctx.fillRect(i*(W/RAYS),wxTop,(W/RAYS)+1,Math.max(1,wxH*.08));
+      }
+    }
+
+    // Front door.
+    if(Math.abs(sy+4)<.5 && Math.abs(sx)<1.45){
+      ctx.fillStyle='#4a2d22';
+      ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,bottom-top);
+      ctx.fillStyle='rgba(0,0,0,.28)';
+      ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,Math.max(1,wallH*.05));
+    }
+
+    // Stronger interior light when close to the walls.
+    if(dist<8){
+      const light=(1-dist/8)*.08;
+      ctx.fillStyle='rgba(255,242,201,'+light+')';
       ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,bottom-top);
     }
   }
-
-  // Blacken far distance at floor/ceiling edge for depth.
-  ctx.fillStyle='rgba(0,0,0,.12)';
-  ctx.fillRect(0,horizon-4,W,8);
 }
 
 function renderNeighbor(){
   const dx=neighbor.x-player.x,dy=neighbor.y-player.y;
   const dist=Math.hypot(dx,dy);
   if(dist>.05 && dist<28){
-    const angle=Math.atan2(dx,-dy); // relative to camera forward
+    const angle=Math.atan2(dx,-dy);
     const rel=normAngle(angle-yaw);
     if(Math.abs(rel)<HALF_FOV+.18){
       const depth=dist*Math.cos(rel);
@@ -519,20 +587,48 @@ function renderNeighbor(){
         const screenX=W/2 + Math.tan(rel)*W/(2*Math.tan(HALF_FOV));
         const size=Math.min(H*1.2,(2.75/depth)*H);
         const x=screenX-size*.22;
-        const y=(H*.48+pitch*H*.16)-size*.7;
-
+        const y=getHorizon()-size*.7;
         const rayIndex=Math.floor((screenX/W)*(RAYS-1));
         const blocked=rayIndex>=0&&rayIndex<RAYS&&zBuffer[rayIndex]<depth;
+
         if(!blocked){
-          // body
+          // Ground shadow.
+          ctx.fillStyle='rgba(0,0,0,.34)';
+          ctx.beginPath();
+          ctx.ellipse(screenX,getHorizon()+size*.02,size*.30,size*.07,0,0,Math.PI*2);
+          ctx.fill();
+
+          // Legs.
+          ctx.strokeStyle='#24352a';
+          ctx.lineWidth=Math.max(2,size*.055);
+          ctx.beginPath();
+          ctx.moveTo(screenX-size*.03,y+size*.72);
+          ctx.lineTo(screenX-size*.11,y+size*.95);
+          ctx.moveTo(screenX+size*.03,y+size*.72);
+          ctx.lineTo(screenX+size*.11,y+size*.95);
+          ctx.stroke();
+
+          // Coat/body.
           ctx.fillStyle='#2f523c';
-          ctx.fillRect(x+size*.25,y+size*.34,size*.42,size*.55);
-          // head
+          ctx.fillRect(x+size*.25,y+size*.34,size*.42,size*.47);
+
+          // Arms.
+          ctx.strokeStyle='#314b39';
+          ctx.lineWidth=Math.max(2,size*.07);
+          ctx.beginPath();
+          ctx.moveTo(x+size*.27,y+size*.43);
+          ctx.lineTo(x+size*.10,y+size*.67);
+          ctx.moveTo(x+size*.65,y+size*.43);
+          ctx.lineTo(x+size*.82,y+size*.67);
+          ctx.stroke();
+
+          // Head.
           ctx.fillStyle='#c78b67';
           ctx.beginPath();
           ctx.arc(screenX,y+size*.23,size*.14,0,Math.PI*2);
           ctx.fill();
-          // hat
+
+          // Hat.
           ctx.fillStyle='#283149';
           ctx.beginPath();
           ctx.moveTo(screenX-size*.18,y+size*.1);
@@ -541,7 +637,13 @@ function renderNeighbor(){
           ctx.closePath();
           ctx.fill();
 
-          // eyes
+          // Face shadow.
+          ctx.fillStyle='rgba(50,20,15,.22)';
+          ctx.beginPath();
+          ctx.arc(screenX+size*.06,y+size*.25,size*.11,0,Math.PI);
+          ctx.fill();
+
+          // Eyes.
           ctx.fillStyle='#111';
           ctx.fillRect(screenX-size*.08,y+size*.21,size*.035,size*.03);
           ctx.fillRect(screenX+size*.045,y+size*.21,size*.035,size*.03);
@@ -562,6 +664,21 @@ function drawDoorHint(){
   }
 }
 
+function drawAtmosphere(){
+  const g=ctx.createRadialGradient(W/2,H*.48,Math.min(W,H)*.18,W/2,H*.48,Math.max(W,H)*.72);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(.65,'rgba(0,0,0,.10)');
+  g.addColorStop(1,'rgba(0,0,0,.58)');
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W,H);
+
+  const top=ctx.createLinearGradient(0,0,0,H*.22);
+  top.addColorStop(0,'rgba(0,0,0,.28)');
+  top.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=top;
+  ctx.fillRect(0,0,W,H*.22);
+}
+
 function render(){
   drawSky();
   drawFloor();
@@ -569,11 +686,13 @@ function render(){
   renderWalls();
   renderNeighbor();
   drawDoorHint();
+  drawAtmosphere();
 }
 
 function loop(now){
   const dt=Math.min(.05,(now-lastTime)/1000);
   lastTime=now;
+  elapsed+=dt;
   if(started&&!gameOver){
     updatePlayer(dt);
     updateNeighbor(dt);
