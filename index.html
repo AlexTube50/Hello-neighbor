@@ -35,6 +35,9 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 #stamina{height:100%;width:100%;background:#ddd}
 #vignette{position:fixed;inset:0;pointer-events:none;z-index:8;background:radial-gradient(circle,rgba(0,0,0,0) 38%,rgba(0,0,0,.22) 72%,rgba(0,0,0,.65) 100%)}
 #crosshair{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-4px;border:1px solid #fff;border-radius:50%}
+#road3d{
+ position:fixed;inset:0;width:100%;height:100%;display:block;z-index:4;pointer-events:none;
+}
 #blackout{
  position:fixed;inset:0;display:none;z-index:30;align-items:center;justify-content:center;
  background:rgba(0,0,0,.82);color:#fff;text-align:center
@@ -43,6 +46,9 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 #blackout h2{font-size:42px;margin:0 0 14px}
 #blackout button{padding:11px 26px;border:0;border-radius:6px;font-weight:700;cursor:pointer}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/loaders/ColladaLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
 <div id="boot">Loading game...</div>
@@ -56,6 +62,7 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 </div>
 
 <canvas id="game" tabindex="0"></canvas>
+<canvas id="road3d" aria-hidden="true"></canvas>
 
 <div id="hud">
   <div id="crosshair"></div>
@@ -96,6 +103,8 @@ let started=false, gameOver=false, gameReady=false;
 let yaw=0, pitch=0;
 let cameraBob=0, walkCycle=0, elapsed=0, stamina=100;
 let grassSeed=1337;
+let roadRenderer=null, roadScene=null, roadCamera=null, roadRoot=null;
+let roadModelReady=false, roadLoadStarted=false;
 const grassTufts=[];
 let lastTime=performance.now();
 let mouseLook=false;
@@ -168,6 +177,11 @@ function resize(){
   ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
   ctx.imageSmoothingEnabled=true;
   W=innerWidth; H=innerHeight;
+  if(roadRenderer&&roadCamera){
+    roadRenderer.setSize(W,H,false);
+    roadCamera.aspect=W/Math.max(1,H);
+    roadCamera.updateProjectionMatrix();
+  }
 }
 addEventListener('resize',resize);
 resize();
@@ -854,6 +868,153 @@ function drawAtmosphere(){
   ctx.fillRect(0,0,W,H*.22);
 }
 
+
+function findDaeInZip(zip){
+  return Object.values(zip.files).find(f=>!f.dir&&f.name.toLowerCase().endsWith('.dae'))||null;
+}
+
+async function findDaeRecursive(zip,depth=0){
+  const direct=findDaeInZip(zip);
+  if(direct) return {zip,file:direct};
+  if(depth>=2) return null;
+  const nested=Object.values(zip.files).filter(f=>!f.dir&&f.name.toLowerCase().endsWith('.zip'));
+  for(const entry of nested){
+    try{
+      const nestedZip=await JSZip.loadAsync(await entry.async('arraybuffer'));
+      const found=await findDaeRecursive(nestedZip,depth+1);
+      if(found) return found;
+    }catch(e){}
+  }
+  return null;
+}
+
+async function buildRoadTextureMap(zip,map){
+  for(const entry of Object.values(zip.files)){
+    if(entry.dir) continue;
+    const name=entry.name.toLowerCase();
+    if(!/\.(png|jpe?g|webp)$/i.test(name)) continue;
+    const base=entry.name.split('/').pop().toLowerCase();
+    if(map.has(base)) continue;
+    try{
+      const bytes=await entry.async('uint8array');
+      const ext=base.endsWith('.png')?'png':(base.endsWith('.webp')?'webp':'jpeg');
+      map.set(base,URL.createObjectURL(new Blob([bytes],{type:'image/'+ext})));
+    }catch(e){}
+  }
+}
+
+async function loadRoadModel(){
+  if(roadLoadStarted) return;
+  roadLoadStarted=true;
+  const startedAt=performance.now();
+
+  while((!window.THREE||!window.THREE.ColladaLoader||!window.JSZip)&&performance.now()-startedAt<15000){
+    await new Promise(r=>setTimeout(r,100));
+  }
+  if(!window.THREE||!window.THREE.ColladaLoader||!window.JSZip) return;
+
+  try{
+    const roadCanvas=document.getElementById('road3d');
+    roadRenderer=new THREE.WebGLRenderer({
+      canvas:roadCanvas,antialias:true,alpha:true,powerPreference:'high-performance'
+    });
+    roadRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+    roadRenderer.setSize(W,H,false);
+    roadRenderer.setClearColor(0x000000,0);
+
+    roadScene=new THREE.Scene();
+    roadCamera=new THREE.PerspectiveCamera(60,W/Math.max(1,H),0.05,140);
+    roadScene.add(new THREE.HemisphereLight(0xdde7ec,0x23301f,1.5));
+    const key=new THREE.DirectionalLight(0xffead0,1.35);
+    key.position.set(-12,18,10);
+    roadScene.add(key);
+    roadRoot=new THREE.Group();
+    roadScene.add(roadRoot);
+
+    const response=await fetch('assets/road-hd.zip',{cache:'no-store'});
+    if(!response.ok) throw new Error('Road asset HTTP '+response.status);
+    const outerZip=await JSZip.loadAsync(await response.arrayBuffer());
+    const found=await findDaeRecursive(outerZip);
+    if(!found) throw new Error('No DAE model found in road-hd.zip');
+
+    const textureUrls=new Map();
+    await buildRoadTextureMap(outerZip,textureUrls);
+    for(const entry of Object.values(outerZip.files)){
+      if(entry.dir||!entry.name.toLowerCase().endsWith('.zip')) continue;
+      try{
+        const nestedZip=await JSZip.loadAsync(await entry.async('arraybuffer'));
+        await buildRoadTextureMap(nestedZip,textureUrls);
+      }catch(e){}
+    }
+
+    const manager=new THREE.LoadingManager();
+    manager.setURLModifier(url=>{
+      const base=decodeURIComponent(url).split('?')[0].split('/').pop().toLowerCase();
+      return textureUrls.get(base)||url;
+    });
+
+    const daeText=await found.file.async('text');
+    const loader=new THREE.ColladaLoader(manager);
+    const result=loader.parse(daeText,'');
+    const model=result.scene;
+
+    model.rotation.x=-Math.PI/2;
+    model.updateMatrixWorld(true);
+
+    let box=new THREE.Box3().setFromObject(model);
+    let size=box.getSize(new THREE.Vector3());
+    const desiredWidth=8.4;
+    model.scale.setScalar(desiredWidth/Math.max(.001,size.x));
+    model.updateMatrixWorld(true);
+
+    box=new THREE.Box3().setFromObject(model);
+    const center=box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+
+    box.setFromObject(model);
+    model.position.y-=box.min.y;
+
+    box.setFromObject(model);
+    size=box.getSize(new THREE.Vector3());
+    const segment=Math.max(10,size.z*.98);
+
+    for(let i=0;i<4;i++){
+      const piece=i===0?model:model.clone(true);
+      piece.position.z=ROAD_Y-2-i*segment;
+      roadRoot.add(piece);
+    }
+
+    roadRoot.traverse(obj=>{
+      if(!obj.isMesh) return;
+      obj.castShadow=false;
+      obj.receiveShadow=true;
+      if(obj.material){
+        const mats=Array.isArray(obj.material)?obj.material:[obj.material];
+        for(const m of mats){
+          if(m.map) continue;
+          if('roughness' in m) m.roughness=.88;
+          if('metalness' in m) m.metalness=.02;
+        }
+      }
+    });
+
+    roadModelReady=true;
+  }catch(err){
+    console.warn('HD road model unavailable; keeping procedural road.',err);
+    roadModelReady=false;
+  }
+}
+
+function renderRoadModel(){
+  if(!roadRenderer||!roadScene||!roadCamera||!roadModelReady) return;
+  roadCamera.position.set(player.x,player.h,player.y);
+  roadCamera.rotation.order='YXZ';
+  roadCamera.rotation.y=yaw;
+  roadCamera.rotation.x=-pitch;
+  roadCamera.updateMatrixWorld();
+  roadRenderer.render(roadScene,roadCamera);
+}
+
 function render(){
   drawSky();
   drawEnvironmentDetails();
@@ -864,6 +1025,7 @@ function render(){
   renderNeighbor();
   drawDoorHint();
   drawAtmosphere();
+  renderRoadModel();
 }
 
 function loop(now){
@@ -883,6 +1045,8 @@ function loop(now){
   }
   requestAnimationFrame(loop);
 }
+
+loadRoadModel();
 
 requestAnimationFrame(loop);
 
