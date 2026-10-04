@@ -30,6 +30,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a0d0f;fon
 #caught button{padding:11px 28px;border:0;border-radius:7px;font-weight:700;cursor:pointer}
 #problem{display:none;position:fixed;left:50%;bottom:68px;transform:translateX(-50%);z-index:60;max-width:min(760px,90vw);padding:10px 14px;background:rgba(94,8,8,.9);border-radius:8px;color:#fff;font-size:13px;text-align:center}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/js/loaders/ColladaLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script type="importmap">
 {
@@ -38,18 +40,22 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a0d0f;fon
   }
 }
 </script>
+<script type="module">
+import {USDZLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/USDZLoader.js';
+window.__USDZLoader = USDZLoader;
+</script>
 </head>
 <body>
 <div id="boot">Starting the 3D world...<small>Loading graphics.</small></div>
 <script>
 window.setTimeout(function(){
   var b=document.getElementById('boot');
-  if(b && b.style.display!=='none'){
-    b.style.display='none';
-    var m=document.getElementById('menu');
-    if(m)m.style.display='flex';
-  }
-},3500);
+  if(b)b.style.display='none';
+  var m=document.getElementById('menu');
+  if(m)m.style.display='flex';
+  var p=document.getElementById('play');
+  if(p)p.disabled=false;
+},1200);
 window.addEventListener('error',function(){
   var b=document.getElementById('boot');
   if(b)b.style.display='none';
@@ -87,11 +93,7 @@ window.addEventListener('error',function(){
 </div>
 <div id="problem"></div>
 
-<script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
-import {USDZLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/USDZLoader.js';
-import {ColladaLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/ColladaLoader.js';
-import {Sky} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/objects/Sky.js';
+<script>
 
 const gameCanvas=document.getElementById('game');
 const menu=document.getElementById('menu');
@@ -152,16 +154,7 @@ porchLight.castShadow=true;
 porchLight.shadow.mapSize.set(1024,1024);
 scene.add(porchLight);
 
-const sky=new Sky();
-sky.scale.setScalar(450);
-scene.add(sky);
-sky.material.uniforms.turbidity.value=7;
-sky.material.uniforms.rayleigh.value=2.3;
-sky.material.uniforms.mieCoefficient.value=.006;
-sky.material.uniforms.mieDirectionalG.value=.77;
-const sunPos=new THREE.Vector3();
-sunPos.setFromSphericalCoords(1,THREE.MathUtils.degToRad(84),THREE.MathUtils.degToRad(226));
-sky.material.uniforms.sunPosition.value.copy(sunPos);
+scene.background=new THREE.Color(0x78868c);
 
 function makeGroundTexture(){
   const c=document.createElement('canvas'); c.width=c.height=256;
@@ -288,7 +281,12 @@ function fallback3DHouse(){
 async function loadHouse(){
   try{
     reportAsset();
-    const loader=new USDZLoader();
+    const startedAt=performance.now();
+    while(!window.__USDZLoader&&performance.now()-startedAt<8000){
+      await new Promise(r=>setTimeout(r,100));
+    }
+    if(!window.__USDZLoader)throw new Error('USDZLoader unavailable');
+    const loader=new window.__USDZLoader();
     const result=await Promise.race([
       loader.loadAsync('assets/Hello_Neighbor_House_Act_1.usdz'),
       new Promise((_,reject)=>setTimeout(()=>reject(new Error('house timeout')),18000))
