@@ -531,26 +531,55 @@ function toggleDoor(){
 
 async function enterWorld(){
   if(started)return;
+  const loadingStarted=performance.now();
+  const minimumLoadMs=10000;
+
   play.disabled=true;
-  menuStatus.textContent="Loading world...";
+  menuStatus.textContent="Loading world... 0%";
   menu.style.display="none";
   boot.style.display="flex";
-  setBoot("Starting the world...");
+  setBoot("Loading the 3D world...");
+
   try{
     THREE=await ensureThree();
+
+    const progressTimer=setInterval(function(){
+      const elapsed=performance.now()-loadingStarted;
+      const pct=Math.min(99,Math.floor((elapsed/minimumLoadMs)*100));
+      setBoot("Loading the 3D world...");
+      menuStatus.textContent="Loading world... "+pct+"%";
+    },100);
+
     if(!renderer){
       setBoot("Building the world...");
       setupWorld();
     }
+
     ready=true;
+
+    // Start both model downloads during the ten-second loading period.
+    const housePromise=loadHouseAsset().catch(function(err){console.warn("House load:",err)});
+    const roadPromise=loadRoadAsset().catch(function(err){console.warn("Road load:",err)});
+
+    const remaining=Math.max(0,minimumLoadMs-(performance.now()-loadingStarted));
+    if(remaining>0){
+      setBoot("Finalizing the world...");
+      await new Promise(function(resolve){setTimeout(resolve,remaining)});
+    }
+
+    clearInterval(progressTimer);
+    menuStatus.textContent="World loaded.";
     started=true;
     gameOver=false;
     boot.style.display="none";
     hint.textContent="Reach the front door. Press E near the door.";
     canvas.focus();
     try{canvas.requestPointerLock()}catch(err){}
-    loadHouseAsset();
-    loadRoadAsset();
+
+    // Keep waiting for assets in the background after the player enters.
+    Promise.allSettled([housePromise,roadPromise]).then(function(){
+      setAssets();
+    });
   }catch(err){
     console.error(err);
     menu.style.display="flex";
