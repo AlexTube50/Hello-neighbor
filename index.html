@@ -325,7 +325,10 @@ async function loadHouse(){
   assetStatus.innerHTML='House: LOADING<br>Road: LOADING';
   try{
     const loader=new USDZLoader();
-    const result=await loader.loadAsync('assets/Hello_Neighbor_House_Act_1.usdz');
+    const result=await Promise.race([
+      loader.loadAsync('assets/Hello_Neighbor_House_Act_1.usdz'),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('House model load timed out')),12000))
+    ]);
     const model=result.scene||result;
     if(!model)throw new Error('USDZ loader returned no scene');
 
@@ -377,7 +380,10 @@ async function collectTextures(zip,map){
 
 async function loadRoad(){
   try{
-    const response=await fetch('assets/road-hd.zip',{cache:'no-store'});
+    const response=await Promise.race([
+      fetch('assets/road-hd.zip',{cache:'no-store'}),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Road model request timed out')),12000))
+    ]);
     if(!response.ok)throw new Error('Road ZIP HTTP '+response.status);
     const outer=await JSZip.loadAsync(await response.arrayBuffer());
     const found=await findDae(outer);
@@ -749,17 +755,35 @@ function updateWorld(dt){
   updateCamera();
 }
 
-async function loadAll(){
-  const results=await Promise.allSettled([loadHouse(),loadRoad()]);
-  if(!houseLoaded) addFallbackHouse();
-
+function loadAll(){
+  // Do not block the menu on large model downloads/parsing.
   loadingDone=true;
   boot.style.display='none';
   playButton.disabled=false;
   playButton.textContent='PLAY';
-  hint.textContent=houseLoaded&&roadLoaded
-    ?'Models online. Reach the house. E opens the front door.'
-    :'3D world ready. Reach the house.';
+  hint.textContent='3D world ready. Models are loading in the background.';
+  
+  loadHouse()
+    .then(()=>{
+      assetStatus.innerHTML='House: <b>ONLINE</b><br>Road: '+(roadLoaded?'<b>ONLINE</b>':'LOADING');
+      hint.textContent=roadLoaded
+        ?'Models online. Reach the house. E opens the front door.'
+        :'House online. Road is still loading.';
+    })
+    .catch(err=>console.warn('House background load error',err));
+    
+  loadRoad()
+    .then(()=>{
+      assetStatus.innerHTML='House: '+(houseLoaded?'<b>ONLINE</b>':'LOADING')+'<br>Road: <b>ONLINE</b>';
+      hint.textContent=houseLoaded
+        ?'Models online. Reach the house. E opens the front door.'
+        :'Road online. House is still loading.';
+    })
+    .catch(err=>console.warn('Road background load error',err));
+
+  setTimeout(()=>{
+    if(!houseLoaded && !houseGroup.children.length) addFallbackHouse();
+  },1200);
 }
 
 function render(){
