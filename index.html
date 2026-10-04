@@ -31,9 +31,32 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a0d0f;fon
 #problem{display:none;position:fixed;left:50%;bottom:68px;transform:translateX(-50%);z-index:60;max-width:min(760px,90vw);padding:10px 14px;background:rgba(94,8,8,.9);border-radius:8px;color:#fff;font-size:13px;text-align:center}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+  }
+}
+</script>
 </head>
 <body>
-<div id="boot">Starting the 3D world...<small>You can enter the game immediately.</small></div>
+<div id="boot">Starting the 3D world...<small>Loading graphics.</small></div>
+<script>
+window.setTimeout(function(){
+  var b=document.getElementById('boot');
+  if(b && b.style.display!=='none'){
+    b.style.display='none';
+    var m=document.getElementById('menu');
+    if(m)m.style.display='flex';
+  }
+},3500);
+window.addEventListener('error',function(){
+  var b=document.getElementById('boot');
+  if(b)b.style.display='none';
+  var m=document.getElementById('menu');
+  if(m)m.style.display='flex';
+});
+</script>
 
 <div id="menu">
   <div id="menuBox">
@@ -490,7 +513,8 @@ function catchPlayer(){
 
 function startGame(){
   started=true;gameOver=false;menu.style.display='none';caught.style.display='none';
-  gameCanvas.focus();gameCanvas.requestPointerLock?.();
+  gameCanvas.focus();
+  try{gameCanvas.requestPointerLock?.()}catch(e){}
   hint.textContent=houseLoaded&&roadLoaded?'Models online. Reach the house.':'3D world active. Models continue loading.';
 }
 
