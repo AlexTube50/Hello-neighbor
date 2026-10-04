@@ -2,44 +2,53 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hello Neighbor: The dark secrets</title>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:Arial,Helvetica,sans-serif}
-canvas{display:block;width:100%;height:100%;cursor:crosshair}
+:root{color-scheme:dark}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050707;font-family:Arial,Helvetica,sans-serif}
+#world{position:fixed;inset:0;width:100%;height:100%;display:block}
 #menu{
  position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
- background:radial-gradient(circle at 50% 42%,#111 0%,#030303 45%,#000 78%);
+ background:radial-gradient(circle at 50% 45%,rgba(24,27,30,.96),rgba(0,0,0,.98) 74%);
  color:#fff;text-align:center
 }
-#menuBox{min-width:340px;max-width:780px;padding:48px 56px;text-shadow:0 2px 10px rgba(0,0,0,.9)}
-#menuBox:after{content:"";display:block;width:140px;height:1px;background:#555;margin:28px auto 0;box-shadow:0 0 18px #aaa}
-#menu h1{font-size:clamp(32px,5vw,58px);margin:0 0 18px;font-weight:800;letter-spacing:.4px}
-#menu p{font-size:17px;line-height:1.55;color:#d0d0d0;margin:8px 0}
+#menuBox{min-width:340px;max-width:820px;padding:48px 56px;text-shadow:0 3px 18px rgba(0,0,0,.95)}
+#menu h1{font-size:clamp(34px,5vw,62px);margin:0 0 16px;font-weight:800;letter-spacing:.4px}
+#menu p{font-size:17px;line-height:1.55;color:#d4d9dc;margin:8px 0}
 #play{
- margin-top:22px;padding:14px 40px;border:0;border-radius:6px;background:#fff;color:#000;
- font-size:20px;font-weight:800;cursor:pointer
+ margin-top:24px;padding:14px 44px;border:0;border-radius:7px;background:#fff;color:#111;
+ font-size:20px;font-weight:800;cursor:pointer;box-shadow:0 5px 20px rgba(0,0,0,.35)
 }
-#play:hover{background:#ddd}
-#boot{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:18px;letter-spacing:.3px}
+#play:hover{background:#e7e7e7}
+#boot{
+ position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
+ flex-direction:column;background:#050707;color:#fff;font-size:18px;letter-spacing:.25px
+}
+#boot small{margin-top:10px;color:#9ea7ad;font-size:13px}
 #play:disabled{opacity:.45;cursor:wait}
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;color:#fff}
-#objective,#status,#hint{
- position:absolute;background:rgba(0,0,0,.54);border-radius:8px;padding:9px 12px;
- text-shadow:0 1px 2px #000
+.panel{
+ position:absolute;background:rgba(5,8,9,.52);backdrop-filter:blur(7px);
+ border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 12px;
+ text-shadow:0 1px 4px #000;box-shadow:0 4px 16px rgba(0,0,0,.16)
 }
 #objective{left:14px;top:14px}
-#status{right:14px;top:14px}
-#hint{left:50%;bottom:25px;transform:translateX(-50%);min-width:180px;text-align:center}
-#staminaWrap{position:absolute;left:14px;bottom:14px;width:180px;height:7px;background:rgba(0,0,0,.55);border-radius:5px;overflow:hidden}
-#stamina{height:100%;width:100%;background:#ddd}
-#vignette{position:fixed;inset:0;pointer-events:none;z-index:8;background:radial-gradient(circle,rgba(0,0,0,0) 38%,rgba(0,0,0,.22) 72%,rgba(0,0,0,.65) 100%)}
-#crosshair{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-4px;border:1px solid #fff;border-radius:50%}
-#road3d{
- position:fixed;inset:0;width:100%;height:100%;display:block;z-index:4;pointer-events:none;
+#status{right:14px;top:14px;text-align:right}
+#hint{left:50%;bottom:25px;transform:translateX(-50%);min-width:190px;text-align:center}
+#assetStatus{position:absolute;right:14px;top:61px;font-size:12px;line-height:1.65;color:#d7dee2}
+#staminaWrap{
+ position:absolute;left:14px;bottom:14px;width:180px;height:7px;background:rgba(0,0,0,.5);
+ border-radius:5px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.08)
 }
-#house3d{
- position:fixed;inset:0;width:100%;height:100%;display:block;z-index:5;pointer-events:none;
+#stamina{height:100%;width:100%;background:#e2e4e5}
+#crosshair{
+ position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-4px;
+ border:1px solid rgba(255,255,255,.9);border-radius:50%;box-shadow:0 0 7px rgba(255,255,255,.25)
+}
+#vignette{
+ position:fixed;inset:0;pointer-events:none;z-index:8;
+ background:radial-gradient(circle,rgba(0,0,0,0) 34%,rgba(0,0,0,.06) 62%,rgba(0,0,0,.65) 100%)
 }
 #blackout{
  position:fixed;inset:0;display:none;z-index:30;align-items:center;justify-content:center;
@@ -48,46 +57,35 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 #blackoutBox{padding:30px}
 #blackout h2{font-size:42px;margin:0 0 14px}
 #blackout button{padding:11px 26px;border:0;border-radius:6px;font-weight:700;cursor:pointer}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/loaders/ColladaLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.142.0/examples/jsm/"
-  }
+#error{
+ display:none;position:fixed;left:50%;bottom:70px;transform:translateX(-50%);
+ z-index:50;padding:10px 14px;border-radius:8px;background:rgba(80,8,8,.88);
+ color:#fff;font-size:13px;text-align:center;max-width:min(760px,90vw)
 }
-</script>
-<script type="module">
-import * as HOUSE_THREE from 'three';
-import { USDZLoader } from 'three/addons/loaders/USDZLoader.js';
-window.__HOUSE_THREE = HOUSE_THREE;
-window.__HOUSE_USDZLoader = USDZLoader;
-</script>
+</style>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
-<div id="boot">Loading game...</div>
+<div id="boot">Loading 3D world...<small>House and road models are being loaded.</small></div>
+
 <div id="menu">
   <div id="menuBox">
     <h1>Hello Neighbor: The dark secrets</h1>
-    <p>Explore the house. Find a way inside.</p>
+    <p>A realistic 3D rebuild using the house and road models in the repository.</p>
     <p><b>WASD</b> Move &nbsp; <b>Mouse</b> Look &nbsp; <b>Shift</b> Sprint &nbsp; <b>Space</b> Jump &nbsp; <b>E</b> Door &nbsp; <b>R</b> Restart</p>
-    <button id="play" type="button">PLAY</button>
+    <button id="play" type="button" disabled>LOADING...</button>
   </div>
 </div>
 
-<canvas id="game" tabindex="0"></canvas>
-<canvas id="road3d" aria-hidden="true"></canvas>
-<canvas id="house3d" aria-hidden="true"></canvas>
+<canvas id="world" tabindex="0"></canvas>
 
 <div id="hud">
+  <div id="objective" class="panel">Objective: Get inside the house and explore.</div>
+  <div id="status" class="panel">Neighbor: PATROLLING</div>
+  <div id="assetStatus" class="panel">House: LOADING<br>Road: LOADING</div>
+  <div id="hint" class="panel"></div>
   <div id="crosshair"></div>
   <div id="staminaWrap"><div id="stamina"></div></div>
-  <div id="objective">Objective: Get inside the house and explore.</div>
-  <div id="status">Neighbor: PATROLLING</div>
-  <div id="hint"></div>
 </div>
 <div id="vignette"></div>
 
@@ -98,275 +96,565 @@ window.__HOUSE_USDZLoader = USDZLoader;
     <button id="restartButton" type="button">RESTART</button>
   </div>
 </div>
+<div id="error"></div>
 
-<script>
-(() => {
-'use strict';
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import { USDZLoader } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/USDZLoader.js';
+import { ColladaLoader } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/ColladaLoader.js';
+import { Sky } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/objects/Sky.js';
 
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d', {alpha:false});
-ctx.imageSmoothingEnabled = true;
-const menu = document.getElementById('menu');
-const playButton = document.getElementById('play');
-const blackout = document.getElementById('blackout');
-const restartButton = document.getElementById('restartButton');
-const objective = document.getElementById('objective');
-const status = document.getElementById('status');
-const hint = document.getElementById('hint');
-const boot = document.getElementById('boot');
-const staminaBar = document.getElementById('stamina');
+const canvas=document.getElementById('world');
+const menu=document.getElementById('menu');
+const playButton=document.getElementById('play');
+const restartButton=document.getElementById('restartButton');
+const blackout=document.getElementById('blackout');
+const boot=document.getElementById('boot');
+const objective=document.getElementById('objective');
+const status=document.getElementById('status');
+const hint=document.getElementById('hint');
+const assetStatus=document.getElementById('assetStatus');
+const staminaBar=document.getElementById('stamina');
+const errorBox=document.getElementById('error');
 
-let W=innerWidth, H=innerHeight;
-let started=false, gameOver=false, gameReady=false;
-let yaw=0, pitch=0;
-let cameraBob=0, walkCycle=0, elapsed=0, stamina=100;
-let grassSeed=1337;
-let roadRenderer=null, roadScene=null, roadCamera=null, roadRoot=null;
-let roadModelReady=false, roadLoadStarted=false;
-let houseRenderer=null, houseScene=null, houseCamera=null, houseRoot=null;
-let houseModelReady=false, houseLoadStarted=false;
-const grassTufts=[];
+let started=false;
+let gameOver=false;
+let loadingDone=false;
+let pointerLocked=false;
+let yaw=0;
+let pitch=-0.06;
+let elapsed=0;
+let stamina=100;
+let cameraBob=0;
+let walkTime=0;
 let lastTime=performance.now();
-let mouseLook=false;
+
 const keys=new Set();
+const clock=new THREE.Clock();
 
-const FOV=Math.PI/3;
-const HALF_FOV=FOV/2;
-const RAYS=Math.max(900,Math.min(1600,Math.floor(innerWidth*1.05)));
-let zBuffer=new Float32Array(RAYS);
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x75828a,0.018);
 
-const player={
-  x:0,
-  y:9.2,
-  h:1.72,
-  radius:.28,
-  speed:3.8,
-  sprint:6.2,
-  vy:0,
-  grounded:true
-};
+const renderer=new THREE.WebGLRenderer({
+  canvas,
+  antialias:true,
+  powerPreference:'high-performance'
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(innerWidth,innerHeight,false);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.08;
 
-// Road is in front of the house (negative y).
-const ROAD_Y=-9.4;
-const ROAD_HALF=1.8;
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.05,180);
+camera.position.set(0,1.72,10.5);
+camera.rotation.order='YXZ';
 
-// Axis-aligned collision boxes: x,y,width,height.
-const walls=[
-  // Outer house
-  {x:-8,y:-4,w:6.2,h:.35,name:'front-left'},
-  {x:1.8,y:-4,w:6.2,h:.35,name:'front-right'},
-  {x:-8,y:3.65,w:16,h:.35,name:'back'},
-  {x:-8,y:-4,w:.35,h:8,name:'left'},
-  {x:7.65,y:-4,w:.35,h:8,name:'right'},
+const ambient=new THREE.HemisphereLight(0xdbe7ec,0x27331f,1.7);
+scene.add(ambient);
 
-  // Interior layout
-  {x:-4.5,y:-2.3,w:.32,h:6,name:'hall-left'},
-  {x:4.2,y:-4,w:.32,h:5.2,name:'hall-right'},
-  {x:-4.5,y:-2.3,w:2.8,h:.32,name:'room-wall'},
-  {x:1.4,y:1.4,w:6.6,h:.32,name:'rear-room'},
-  {x:-1.0,y:1.4,w:.32,h:2.25,name:'stair-side'}
-];
+const moonLight=new THREE.DirectionalLight(0xd8e6ff,2.5);
+moonLight.position.set(-18,28,14);
+moonLight.castShadow=true;
+moonLight.shadow.mapSize.set(2048,2048);
+moonLight.shadow.camera.left=-45;
+moonLight.shadow.camera.right=45;
+moonLight.shadow.camera.top=45;
+moonLight.shadow.camera.bottom=-45;
+moonLight.shadow.camera.near=1;
+moonLight.shadow.camera.far=90;
+scene.add(moonLight);
 
-const door={
-  x:-1.0, y:-4.02, w:2.8, h:.38, open:false
-};
+const warmLight=new THREE.PointLight(0xffc77a,10,22,2);
+warmLight.position.set(0,2.9,-3.3);
+warmLight.castShadow=true;
+warmLight.shadow.mapSize.set(1024,1024);
+scene.add(warmLight);
 
-const patrol=[
-  {x:-6.2,y:1.8},
-  {x:-6.2,y:-2.8},
-  {x:4.8,y:-2.8},
-  {x:5.8,y:2.0},
-  {x:0,y:2.7}
-];
+const sky=new Sky();
+sky.scale.setScalar(450);
+scene.add(sky);
+sky.material.uniforms.turbidity.value=7;
+sky.material.uniforms.rayleigh.value=2.1;
+sky.material.uniforms.mieCoefficient.value=0.006;
+sky.material.uniforms.mieDirectionalG.value=0.78;
+const sun=new THREE.Vector3();
+const sunPhi=THREE.MathUtils.degToRad(84);
+const sunTheta=THREE.MathUtils.degToRad(226);
+sun.setFromSphericalCoords(1,sunPhi,sunTheta);
+sky.material.uniforms.sunPosition.value.copy(sun);
 
-const neighbor={
-  x:-6.2,y:1.8,
-  angle:0,
-  speed:1.8,
-  chaseSpeed:3.2,
-  target:null,
-  patrol:0
-};
-
-function resize(){
-  W=innerWidth; H=innerHeight;
-  canvas.width=Math.max(640, Math.floor(W*devicePixelRatio));
-  canvas.height=Math.max(360, Math.floor(H*devicePixelRatio));
-  canvas.style.width=W+'px';
-  canvas.style.height=H+'px';
-  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-  ctx.imageSmoothingEnabled=true;
-  W=innerWidth; H=innerHeight;
-  if(roadRenderer&&roadCamera){
-    roadRenderer.setSize(W,H,false);
-    roadCamera.aspect=W/Math.max(1,H);
-    roadCamera.updateProjectionMatrix();
+function makeGrassTexture(){
+  const c=document.createElement('canvas');
+  c.width=c.height=256;
+  const g=c.getContext('2d');
+  const img=g.createImageData(256,256);
+  for(let i=0;i<img.data.length;i+=4){
+    const n=Math.random();
+    img.data[i]=34+Math.floor(n*34);
+    img.data[i+1]=61+Math.floor(n*48);
+    img.data[i+2]=28+Math.floor(n*20);
+    img.data[i+3]=255;
   }
-  if(houseRenderer&&houseCamera){
-    houseRenderer.setSize(W,H,false);
-    houseCamera.aspect=W/Math.max(1,H);
-    houseCamera.updateProjectionMatrix();
+  g.putImageData(img,0,0);
+  for(let i=0;i<620;i++){
+    const x=Math.random()*256,y=Math.random()*256;
+    const h=2+Math.random()*8;
+    g.strokeStyle='rgba(106,128,66,'+(0.08+Math.random()*0.15)+')';
+    g.lineWidth=1;
+    g.beginPath();
+    g.moveTo(x,y);
+    g.lineTo(x+(Math.random()-.5)*3,y-h);
+    g.stroke();
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(18,24);
+  t.colorSpace=THREE.SRGBColorSpace;
+  t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+
+const grassTexture=makeGrassTexture();
+const ground=new THREE.Mesh(
+  new THREE.PlaneGeometry(180,180),
+  new THREE.MeshStandardMaterial({map:grassTexture,roughness:.97,metalness:0})
+);
+ground.rotation.x=-Math.PI/2;
+ground.position.y=0;
+ground.receiveShadow=true;
+scene.add(ground);
+
+function addGroundDetails(){
+  const dirtMat=new THREE.MeshStandardMaterial({color:0x3d3b2b,roughness:1});
+  const stonesMat=new THREE.MeshStandardMaterial({color:0x5b5a50,roughness:.95});
+  for(let i=0;i<34;i++){
+    const stone=new THREE.Mesh(
+      new THREE.SphereGeometry(.06+Math.random()*.12,8,6),
+      stonesMat
+    );
+    stone.scale.y=.35;
+    stone.position.set(-13+Math.random()*26,.025,-2+Math.random()*15);
+    scene.add(stone);
+  }
+  const dirt=new THREE.Mesh(
+    new THREE.CircleGeometry(7.3,64),
+    dirtMat
+  );
+  dirt.rotation.x=-Math.PI/2;
+  dirt.position.set(0,.01,-4.15);
+  dirt.scale.set(1.3,.7,1);
+  dirt.material.transparent=true;
+  dirt.material.opacity=.12;
+  scene.add(dirt);
+}
+addGroundDetails();
+
+function addBackgroundTrees(){
+  for(let i=0;i<28;i++){
+    const side=i%2===0?-1:1;
+    const tree=new THREE.Group();
+    const trunk=new THREE.Mesh(
+      new THREE.CylinderGeometry(.16,.26,3.2,8),
+      new THREE.MeshStandardMaterial({color:0x3f3428,roughness:1})
+    );
+    trunk.position.y=1.6;
+    trunk.castShadow=true;
+    tree.add(trunk);
+
+    const crownMat=new THREE.MeshStandardMaterial({color:0x1b3a23,roughness:1});
+    for(let j=0;j<3;j++){
+      const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.05-j*.12,1),crownMat);
+      crown.position.set((j-1)*.34,3.25+(j%2)*.25,(j-1)*.24);
+      crown.scale.y=1.05;
+      crown.castShadow=true;
+      tree.add(crown);
+    }
+    tree.position.set(side*(13+Math.random()*17),0,-3+Math.random()*20);
+    scene.add(tree);
   }
 }
-addEventListener('resize',resize);
-resize();
+addBackgroundTrees();
 
-function seededRandom(){
-  grassSeed=(grassSeed*1664525+1013904223)>>>0;
-  return grassSeed/4294967296;
-}
-for(let i=0;i<420;i++){
-  grassTufts.push({
-    x:-34+seededRandom()*68,
-    y:-2+seededRandom()*27,
-    h:3+seededRandom()*7,
-    lean:-1+seededRandom()*2,
-    shade:seededRandom()
+const houseGroup=new THREE.Group();
+const roadGroup=new THREE.Group();
+scene.add(houseGroup,roadGroup);
+
+const houseBounds=new THREE.Box3();
+const roadBounds=new THREE.Box3();
+let houseLoaded=false;
+let roadLoaded=false;
+
+function setMaterialQuality(root){
+  root.traverse(o=>{
+    if(!o.isMesh)return;
+    o.castShadow=true;
+    o.receiveShadow=true;
+    const mats=Array.isArray(o.material)?o.material:[o.material];
+    for(const m of mats){
+      if(!m)continue;
+      if('roughness' in m && Number.isFinite(m.roughness))m.roughness=Math.max(.62,m.roughness);
+      if('metalness' in m && Number.isFinite(m.metalness))m.metalness=Math.min(.12,m.metalness);
+      if(m.map){
+        m.map.anisotropy=renderer.capabilities.getMaxAnisotropy();
+        m.map.colorSpace=THREE.SRGBColorSpace;
+      }
+    }
   });
 }
 
-function normAngle(a){
-  while(a>Math.PI)a-=Math.PI*2;
-  while(a<-Math.PI)a+=Math.PI*2;
-  return a;
-}
-function getHorizon(){
-  return H*.48+pitch*H*.16+cameraBob;
-}
-function hexToRgb(hex){
-  const n=parseInt(hex.slice(1),16);
-  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
-}
-function rgbToCss(c){
-  return 'rgb('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+')';
-}
-function fogColor(rgb, amount){
-  const f={r:88,g:103,b:111};
-  return {
-    r:rgb.r*(1-amount)+f.r*amount,
-    g:rgb.g*(1-amount)+f.g*amount,
-    b:rgb.b*(1-amount)+f.b*amount
-  };
+function centerAndScaleModel(model,desiredWidth){
+  model.updateMatrixWorld(true);
+  let box=new THREE.Box3().setFromObject(model);
+  const size=box.getSize(new THREE.Vector3());
+  const scale=desiredWidth/Math.max(.001,size.x);
+  model.scale.setScalar(scale);
+  model.updateMatrixWorld(true);
+  box.setFromObject(model);
+  const center=box.getCenter(new THREE.Vector3());
+  model.position.x-=center.x;
+  model.position.z-=center.z;
+  model.position.y-=box.min.y;
+  model.updateMatrixWorld(true);
+  return new THREE.Box3().setFromObject(model);
 }
 
-function pointInBox(px,py,b,margin=0){
-  return px>=b.x-margin && px<=b.x+b.w+margin && py>=b.y-margin && py<=b.y+b.h+margin;
-}
+async function loadHouse(){
+  assetStatus.innerHTML='House: LOADING<br>Road: LOADING';
+  try{
+    const loader=new USDZLoader();
+    const result=await loader.loadAsync('assets/Hello_Neighbor_House_Act_1.usdz');
+    const model=result.scene||result;
+    if(!model)throw new Error('USDZ loader returned no scene');
 
-function blocked(px,py){
-  for(const b of walls){
-    if(pointInBox(px,py,b,player.radius)) return true;
+    const box=centerAndScaleModel(model,16.5);
+    model.position.z=-4.1;
+    model.position.y=0;
+    setMaterialQuality(model);
+
+    houseGroup.add(model);
+    houseBounds.copy(new THREE.Box3().setFromObject(houseGroup));
+    houseLoaded=true;
+    assetStatus.innerHTML='House: <b>ONLINE</b><br>Road: '+(roadLoaded?'<b>ONLINE</b>':'LOADING');
+  }catch(err){
+    console.error('House model failed to load',err);
+    assetStatus.innerHTML='House: <b>FAILED</b><br>Road: '+(roadLoaded?'<b>ONLINE</b>':'LOADING');
+    showError('The house model did not load. The game is still running in 3D, but the repository model needs to be checked.');
   }
-  if(!door.open && pointInBox(px,py,door,player.radius)) return true;
+}
+
+async function findDae(zip,depth=0){
+  for(const f of Object.values(zip.files)){
+    if(!f.dir&&f.name.toLowerCase().endsWith('.dae'))return {zip,file:f};
+  }
+  if(depth>=2)return null;
+  for(const f of Object.values(zip.files)){
+    if(f.dir||!f.name.toLowerCase().endsWith('.zip'))continue;
+    try{
+      const nested=await JSZip.loadAsync(await f.async('arraybuffer'));
+      const found=await findDae(nested,depth+1);
+      if(found)return found;
+    }catch(e){}
+  }
+  return null;
+}
+
+async function collectTextures(zip,map){
+  for(const f of Object.values(zip.files)){
+    if(f.dir)continue;
+    if(!/\.(png|jpe?g|webp)$/i.test(f.name))continue;
+    const base=f.name.split('/').pop().toLowerCase();
+    if(map.has(base))continue;
+    try{
+      const bytes=await f.async('uint8array');
+      const ext=base.endsWith('.png')?'png':(base.endsWith('.webp')?'webp':'jpeg');
+      map.set(base,URL.createObjectURL(new Blob([bytes],{type:'image/'+ext})));
+    }catch(e){}
+  }
+}
+
+async function loadRoad(){
+  try{
+    const response=await fetch('assets/road-hd.zip',{cache:'no-store'});
+    if(!response.ok)throw new Error('Road ZIP HTTP '+response.status);
+    const outer=await JSZip.loadAsync(await response.arrayBuffer());
+    const found=await findDae(outer);
+    if(!found)throw new Error('No DAE model in road-hd.zip');
+
+    const textures=new Map();
+    await collectTextures(outer,textures);
+    for(const f of Object.values(outer.files)){
+      if(f.dir||!f.name.toLowerCase().endsWith('.zip'))continue;
+      try{
+        const nested=await JSZip.loadAsync(await f.async('arraybuffer'));
+        await collectTextures(nested,textures);
+      }catch(e){}
+    }
+
+    const manager=new THREE.LoadingManager();
+    manager.setURLModifier(url=>{
+      const base=decodeURIComponent(url).split('?')[0].split('/').pop().toLowerCase();
+      return textures.get(base)||url;
+    });
+
+    const daeText=await found.file.async('text');
+    const loader=new ColladaLoader(manager);
+    const result=loader.parse(daeText,'');
+    const model=result.scene;
+    model.rotation.x=-Math.PI/2;
+    model.updateMatrixWorld(true);
+
+    let box=new THREE.Box3().setFromObject(model);
+    const size=box.getSize(new THREE.Vector3());
+    model.scale.setScalar(8.5/Math.max(.001,size.x));
+    model.updateMatrixWorld(true);
+
+    box=new THREE.Box3().setFromObject(model);
+    const center=box.getCenter(new THREE.Vector3());
+    model.position.x-=center.x;
+    model.position.z-=center.z;
+    model.position.y-=box.min.y;
+
+    box=new THREE.Box3().setFromObject(model);
+    const segment=Math.max(10,box.getSize(new THREE.Vector3()).z*.98);
+
+    for(let i=0;i<5;i++){
+      const piece=i===0?model:model.clone(true);
+      piece.position.set(0,.005,-8-i*segment);
+      setMaterialQuality(piece);
+      roadGroup.add(piece);
+    }
+
+    roadBounds.copy(new THREE.Box3().setFromObject(roadGroup));
+    roadLoaded=true;
+    assetStatus.innerHTML='House: '+(houseLoaded?'<b>ONLINE</b>':'LOADING')+'<br>Road: <b>ONLINE</b>';
+  }catch(err){
+    console.error('Road model failed to load',err);
+    assetStatus.innerHTML='House: '+(houseLoaded?'<b>ONLINE</b>':'LOADING')+'<br>Road: <b>FAILED</b>';
+    showError('The road model did not load. The game is still running in 3D, but the repository road package needs to be checked.');
+  }
+}
+
+function addFallbackHouse(){
+  const group=new THREE.Group();
+  const bodyMat=new THREE.MeshStandardMaterial({color:0x9b7e5d,roughness:.9});
+  const roofMat=new THREE.MeshStandardMaterial({color:0x3d3430,roughness:1});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(16,6.5,8),bodyMat);
+  body.position.y=3.25;
+  body.castShadow=true;
+  body.receiveShadow=true;
+  group.add(body);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(10.7,4,4),roofMat);
+  roof.rotation.y=Math.PI/4;
+  roof.position.y=8.5;
+  roof.scale.z=.56;
+  roof.castShadow=true;
+  group.add(roof);
+  group.position.z=-4.1;
+  houseGroup.add(group);
+}
+
+function showError(msg){
+  errorBox.textContent=msg;
+  errorBox.style.display='block';
+  setTimeout(()=>errorBox.style.display='none',7000);
+}
+
+const player={
+  x:0,
+  z:10.5,
+  y:1.72,
+  vy:0,
+  grounded:true,
+  radius:.33,
+  speed:4.5,
+  sprint:7.0
+};
+
+const neighbor={
+  x:-6.3,
+  z:0.8,
+  y:0,
+  angle:0,
+  speed:1.75,
+  chaseSpeed:3.35,
+  target:null,
+  patrolIndex:0
+};
+
+const patrol=[
+  {x:-6.2,z:1.2},
+  {x:-6.2,z:-2.9},
+  {x:5.2,z:-2.7},
+  {x:5.8,z:2.2},
+  {x:0,z:2.7}
+];
+
+function neighborObject(){
+  if(!neighbor.mesh){
+    const g=new THREE.Group();
+    const coat=new THREE.MeshStandardMaterial({color:0x31543e,roughness:.92});
+    const skin=new THREE.MeshStandardMaterial({color:0xc78b69,roughness:.92});
+    const dark=new THREE.MeshStandardMaterial({color:0x202633,roughness:.95});
+    const body=new THREE.Mesh(new THREE.CapsuleGeometry(.38,1.0,5,10),coat);
+    body.position.y=1.08;
+    body.scale.set(1.05,1.08,.75);
+    g.add(body);
+
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.28,16,12),skin);
+    head.position.y=1.95;
+    g.add(head);
+
+    const hat=new THREE.Mesh(new THREE.CylinderGeometry(.37,.46,.18,16),dark);
+    hat.position.y=2.23;
+    g.add(hat);
+
+    for(const sx of [-.14,.14]){
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.10,.12,.75,8),dark);
+      leg.position.set(sx,.38,0);
+      g.add(leg);
+    }
+
+    g.traverse(o=>{if(o.isMesh)o.castShadow=true});
+    g.position.set(neighbor.x,0,neighbor.z);
+    scene.add(g);
+    neighbor.mesh=g;
+  }
+  return neighbor.mesh;
+}
+neighborObject();
+
+function isBlocked(x,z){
+  const r=.33;
+  const house={
+    minX:-8.3,maxX:8.3,minZ:-8.2,maxZ:4.3
+  };
+  const frontDoor={
+    minX:-1.35,maxX:1.35,maxZ:-7.65
+  };
+  if(x>house.minX-r&&x<house.maxX+r&&z>house.minZ-r&&z<house.maxZ+r){
+    if(z<frontDoor.maxZ+r&&x>frontDoor.minX&&x<frontDoor.maxX){
+      return doorClosed;
+    }
+    return true;
+  }
   return false;
 }
 
-function moveWithCollision(dx,dy){
+let doorClosed=true;
+
+function movePlayer(dx,dz){
   const nx=player.x+dx;
-  if(!blocked(nx,player.y)) player.x=nx;
-  const ny=player.y+dy;
-  if(!blocked(player.x,ny)) player.y=ny;
+  if(!isBlocked(nx,player.z))player.x=nx;
+  const nz=player.z+dz;
+  if(!isBlocked(player.x,nz))player.z=nz;
 }
 
-function rayBoxDistance(ox,oy,dx,dy,b){
-  let tmin=-Infinity,tmax=Infinity;
+function updatePlayer(dt){
+  let ax=0,az=0;
+  if(keys.has('KeyW'))az-=1;
+  if(keys.has('KeyS'))az+=1;
+  if(keys.has('KeyA'))ax-=1;
+  if(keys.has('KeyD'))ax+=1;
 
-  if(Math.abs(dx)<1e-8){
-    if(ox<b.x || ox>b.x+b.w) return Infinity;
+  const moving=ax!==0||az!==0;
+  const sprinting=moving&&(keys.has('ShiftLeft')||keys.has('ShiftRight'))&&stamina>1;
+  if(sprinting)stamina=Math.max(0,stamina-dt*24);
+  else stamina=Math.min(100,stamina+dt*18);
+  staminaBar.style.width=stamina+'%';
+
+  if(moving){
+    const len=Math.hypot(ax,az);
+    ax/=len;az/=len;
+    const cs=Math.cos(yaw),sn=Math.sin(yaw);
+    const worldX=ax*cs-az*sn;
+    const worldZ=ax*sn+az*cs;
+    const speed=sprinting?player.sprint:player.speed;
+    movePlayer(worldX*speed*dt,worldZ*speed*dt);
+
+    walkTime+=dt*(sprinting?14:10);
+    const target=Math.sin(walkTime)*(sprinting?.075:.052)+Math.sin(walkTime*2.01)*.018;
+    cameraBob+=(target-cameraBob)*Math.min(1,dt*12);
   }else{
-    const tx1=(b.x-ox)/dx;
-    const tx2=(b.x+b.w-ox)/dx;
-    tmin=Math.max(tmin,Math.min(tx1,tx2));
-    tmax=Math.min(tmax,Math.max(tx1,tx2));
+    cameraBob+=(0-cameraBob)*Math.min(1,dt*12);
   }
 
-  if(Math.abs(dy)<1e-8){
-    if(oy<b.y || oy>b.y+b.h) return Infinity;
-  }else{
-    const ty1=(b.y-oy)/dy;
-    const ty2=(b.y+b.h-oy)/dy;
-    tmin=Math.max(tmin,Math.min(ty1,ty2));
-    tmax=Math.min(tmax,Math.max(ty1,ty2));
+  if(player.grounded&&keys.has('Space')){
+    player.vy=6.4;
+    player.grounded=false;
   }
-
-  if(tmax<Math.max(tmin,0)) return Infinity;
-  return tmin>0?tmin:tmax>0?tmax:Infinity;
+  player.vy-=17*dt;
+  player.y+=player.vy*dt;
+  if(player.y<=1.72){
+    player.y=1.72;
+    player.vy=0;
+    player.grounded=true;
+  }
 }
 
-function sceneDistance(ox,oy,dx,dy){
-  let best=60;
-  for(const b of walls){
-    const d=rayBoxDistance(ox,oy,dx,dy,b);
-    if(d>0 && d<best) best=d;
-  }
-  if(!door.open){
-    const d=rayBoxDistance(ox,oy,dx,dy,door);
-    if(d>0 && d<best) best=d;
-  }
-  return best;
-}
-
-function hasLineOfSight(ax,ay,bx,by){
-  const dx=bx-ax,dy=by-ay;
-  const dist=Math.hypot(dx,dy);
-  if(dist<.001) return true;
-  const hit=sceneDistance(ax,ay,dx/dist,dy/dist);
-  return hit >= dist-.12;
-}
+function distance2D(ax,az,bx,bz){return Math.hypot(ax-bx,az-bz)}
 
 function neighborSeesPlayer(){
-  const dx=player.x-neighbor.x,dy=player.y-neighbor.y;
-  const dist=Math.hypot(dx,dy);
-  if(dist>13) return false;
-  const facing=Math.atan2(dy,dx);
-  const diff=Math.abs(normAngle(facing-neighbor.angle));
-  if(dist>5 && diff>Math.PI*.36) return false;
-  return hasLineOfSight(neighbor.x,neighbor.y,player.x,player.y);
+  const dx=player.x-neighbor.x;
+  const dz=player.z-neighbor.z;
+  const dist=Math.hypot(dx,dz);
+  if(dist>14)return false;
+  const angle=Math.atan2(dx,-dz);
+  let diff=angle-neighbor.angle;
+  while(diff>Math.PI)diff-=Math.PI*2;
+  while(diff<-Math.PI)diff+=Math.PI*2;
+  if(dist>5&&Math.abs(diff)>Math.PI*.4)return false;
+  return true;
 }
 
 function updateNeighbor(dt){
   const sees=neighborSeesPlayer();
   if(sees){
-    neighbor.target={x:player.x,y:player.y};
+    neighbor.target={x:player.x,z:player.z};
     status.textContent='Neighbor: CHASING';
-  }else if(neighbor.target){
-    const lost=Math.hypot(player.x-neighbor.target.x,player.y-neighbor.target.y);
-    if(lost>8){
-      neighbor.target=null;
-      status.textContent='Neighbor: PATROLLING';
-    }
+  }else if(neighbor.target&&distance2D(player.x,player.z,neighbor.target.x,neighbor.target.z)>8){
+    neighbor.target=null;
+    status.textContent='Neighbor: PATROLLING';
   }
 
   if(!neighbor.target){
-    const p=patrol[neighbor.patrol];
+    const p=patrol[neighbor.patrolIndex];
     neighbor.target=p;
-    if(Math.hypot(neighbor.x-p.x,neighbor.y-p.y)<.45){
-      neighbor.patrol=(neighbor.patrol+1)%patrol.length;
-      neighbor.target=patrol[neighbor.patrol];
+    if(distance2D(neighbor.x,neighbor.z,p.x,p.z)<.5){
+      neighbor.patrolIndex=(neighbor.patrolIndex+1)%patrol.length;
+      neighbor.target=patrol[neighbor.patrolIndex];
     }
   }
 
   const tx=neighbor.target.x-neighbor.x;
-  const ty=neighbor.target.y-neighbor.y;
-  const d=Math.hypot(tx,ty);
+  const tz=neighbor.target.z-neighbor.z;
+  const d=Math.hypot(tx,tz);
   if(d>.02){
-    neighbor.angle=Math.atan2(ty,tx);
+    neighbor.angle=Math.atan2(tx,-tz);
     const speed=sees?neighbor.chaseSpeed:neighbor.speed;
     const step=Math.min(d,speed*dt);
-    const nx=neighbor.x+Math.cos(neighbor.angle)*step;
-    const ny=neighbor.y+Math.sin(neighbor.angle)*step;
-    if(!walls.some(b=>pointInBox(nx,ny,b,.24))){
+    const nx=neighbor.x+Math.sin(neighbor.angle)*step;
+    const nz=neighbor.z-Math.cos(neighbor.angle)*step;
+    if(!isBlocked(nx,nz)){
       neighbor.x=nx;
-      neighbor.y=ny;
+      neighbor.z=nz;
     }
   }
 
-  if(Math.hypot(player.x-neighbor.x,player.y-neighbor.y)<.75) caught();
+  if(neighbor.mesh){
+    neighbor.mesh.position.set(neighbor.x,0,neighbor.z);
+    neighbor.mesh.rotation.y=neighbor.angle;
+  }
+
+  if(distance2D(player.x,player.z,neighbor.x,neighbor.z)<.82)caught();
 }
 
 function caught(){
-  if(gameOver) return;
+  if(gameOver)return;
   gameOver=true;
+  document.exitPointerLock?.();
   blackout.style.display='flex';
   status.textContent='Neighbor: PLAYER CAUGHT';
   hint.textContent='';
@@ -374,20 +662,18 @@ function caught(){
 
 function resetGame(){
   player.x=0;
-  player.y=9.2;
-  player.h=1.72;
-  player.h=1.72;
+  player.z=10.5;
+  player.y=1.72;
   player.vy=0;
   player.grounded=true;
   stamina=100;
   yaw=0;
-  pitch=0;
+  pitch=-0.06;
   neighbor.x=patrol[0].x;
-  neighbor.y=patrol[0].y;
-  neighbor.angle=0;
+  neighbor.z=patrol[0].z;
   neighbor.target=null;
-  neighbor.patrol=0;
-  door.open=false;
+  neighbor.patrolIndex=0;
+  doorClosed=true;
   gameOver=false;
   started=true;
   blackout.style.display='none';
@@ -402,783 +688,111 @@ function startGame(){
   gameOver=false;
   menu.style.display='none';
   blackout.style.display='none';
-  player.x=0;
-  player.y=9.2;
-  player.vy=0;
-  player.grounded=true;
-  yaw=0;
-  pitch=0;
-  neighbor.x=patrol[0].x;
-  neighbor.y=patrol[0].y;
-  neighbor.target=null;
-  neighbor.patrol=0;
-  status.textContent='Neighbor: PATROLLING';
-  objective.textContent='Objective: Get inside the house and explore.';
-  hint.textContent='Reach the house. E opens the front door.';
   canvas.focus();
-  try{ canvas.requestPointerLock(); }catch(e){}
+  canvas.requestPointerLock?.();
+  hint.textContent='Reach the house. E opens the front door.';
 }
-playButton.disabled=true;
-playButton.textContent='LOADING...';
-playButton.addEventListener('click',startGame);
-restartButton.addEventListener('click',resetGame);
+
+function updateCamera(){
+  camera.position.set(player.x,player.y+cameraBob,player.z);
+  camera.rotation.y=yaw;
+  camera.rotation.x=pitch;
+}
 
 document.addEventListener('pointerlockchange',()=>{
-  mouseLook=document.pointerLockElement===canvas;
-});
-
-canvas.addEventListener('click',()=>{
-  if(started && !gameOver){
-    try{canvas.requestPointerLock();}catch(e){}
-  }
+  pointerLocked=document.pointerLockElement===canvas;
 });
 
 document.addEventListener('mousemove',e=>{
-  if(!started || gameOver) return;
-  if(mouseLook){
-    yaw += e.movementX*.0022;
-    pitch -= e.movementY*.0017;
-    pitch=Math.max(-.95,Math.min(.95,pitch));
-  }
+  if(!started||gameOver||!pointerLocked)return;
+  yaw-=e.movementX*.0022;
+  pitch-=e.movementY*.0018;
+  pitch=THREE.MathUtils.clamp(pitch,-1.25,1.1);
+});
+
+canvas.addEventListener('click',()=>{
+  if(started&&!gameOver)canvas.requestPointerLock?.();
 });
 
 document.addEventListener('keydown',e=>{
   keys.add(e.code);
-
-  if(e.code==='KeyE' && started && !gameOver){
-    const d=Math.hypot(player.x-0,player.y-(-3.9));
-    if(d<3.2){
-      door.open=!door.open;
-      hint.textContent=door.open?'Front door open. Explore the house.':'Front door closed.';
+  if(e.code==='KeyE'&&started&&!gameOver){
+    const d=distance2D(player.x,player.z,0,-7.8);
+    if(d<3.5){
+      doorClosed=!doorClosed;
+      hint.textContent=doorClosed?'Front door closed.':'Front door open. Explore the house.';
     }
   }
-
-  if(e.code==='KeyR' && gameOver) resetGame();
+  if(e.code==='KeyR'&&gameOver)resetGame();
 });
 
 document.addEventListener('keyup',e=>keys.delete(e.code));
 
-function updatePlayer(dt){
-  let ax=0,ay=0;
-  if(keys.has('KeyW')) ay-=1;
-  if(keys.has('KeyS')) ay+=1;
-  if(keys.has('KeyA')) ax-=1;
-  if(keys.has('KeyD')) ax+=1;
-
-  const moving=!!(ax||ay);
-  const wantsSprint=keys.has('ShiftLeft')||keys.has('ShiftRight');
-  const sprinting=wantsSprint && moving && stamina>1;
-  if(sprinting) stamina=Math.max(0,stamina-dt*24);
-  else stamina=Math.min(100,stamina+dt*17);
-  staminaBar.style.width=stamina+'%';
-
-  if(moving){
-    const l=Math.hypot(ax,ay);
-    ax/=l; ay/=l;
-    const cs=Math.cos(yaw),sn=Math.sin(yaw);
-    const worldX=ax*cs-ay*sn;
-    const worldY=ax*sn+ay*cs;
-    const speed=sprinting?player.sprint:player.speed;
-
-    // Small acceleration/deceleration makes movement feel less robotic.
-    moveWithCollision(worldX*speed*dt,worldY*speed*dt);
-
-    walkCycle += dt*(sprinting?15:10);
-    const targetBob=Math.sin(walkCycle)*((sprinting?2.8:1.9))+
-      Math.sin(walkCycle*2.03)*.55;
-    cameraBob += (targetBob-cameraBob)*Math.min(1,dt*12);
-  }else{
-    cameraBob += (0-cameraBob)*Math.min(1,dt*12);
-  }
-
-  if(player.grounded && keys.has('Space')){
-    player.vy=6.5;
-    player.grounded=false;
-  }
-  player.vy-=17*dt;
-  player.h+=player.vy*dt;
-  if(player.h<=1.72){
-    player.h=1.72;
-    player.vy=0;
-    player.grounded=true;
-  }
+function drawDoorLight(){
+  warmLight.intensity=doorClosed?7:13;
+  warmLight.distance=doorClosed?17:23;
 }
 
-function drawEnvironmentDetails(){
-  const horizon=getHorizon();
+function updateWorld(dt){
+  if(started&&!gameOver){
+    updatePlayer(dt);
+    updateNeighbor(dt);
+    drawDoorLight();
 
-  // Distant hills.
-  ctx.fillStyle='rgba(28,44,37,.45)';
-  ctx.beginPath();
-  ctx.moveTo(0,horizon);
-  for(let x=0;x<=W;x+=70){
-    const y=horizon-18-Math.sin(x*.008)*14-Math.sin(x*.021)*9;
-    ctx.lineTo(x,y);
-  }
-  ctx.lineTo(W,horizon);
-  ctx.closePath();
-  ctx.fill();
-
-  // Moon and a few subtle stars for a late-evening horror atmosphere.
-  if(horizon>80){
-    ctx.fillStyle='rgba(245,245,220,.9)';
-    ctx.beginPath();
-    ctx.arc(W*.82,H*.16,Math.min(W,H)*.045,0,Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.55)';
-    for(let i=0;i<45;i++){
-      const sx=(i*137.7)%W, sy=(i*53.2)%(H*.33);
-      const r=1+(i%3)*.35;
-      ctx.fillRect(sx,sy,r,r);
+    if(player.z<-3){
+      objective.textContent='Objective: Find your way through the house.';
+    }
+    if(player.z<-6.8){
+      hint.textContent=doorClosed?'E — Open Front Door':'E — Close Front Door';
     }
   }
-
-  // Wooden fence posts along the yard.
-  for(let x=-18;x<=18;x+=3){
-    const p=worldToScreen(x,1.8);
-    if(!p||p.y<0||p.y>H) continue;
-    const height=Math.max(6,20/(Math.abs(p.y-horizon)+1)*H);
-    ctx.fillStyle='#594534';
-    ctx.fillRect(p.x-2,p.y-height,4,height);
-  }
-
-  // Trees on the far side of the road.
-  const trees=[[-18,-5],[-13,-1],[15,-2],[20,3],[-20,6],[18,7]];
-  for(const [tx,ty] of trees){
-    const p=worldToScreen(tx,ty);
-    if(!p) continue;
-    const size=Math.max(14,90/Math.max(4,Math.hypot(tx-player.x,ty-player.y)));
-    ctx.fillStyle='#2d241d';
-    ctx.fillRect(p.x-size*.06,p.y-size*.45,size*.12,size*.65);
-    ctx.fillStyle='#1f3528';
-    ctx.beginPath();
-    ctx.arc(p.x,p.y-size*.55,size*.42,0,Math.PI*2);
-    ctx.fill();
-    ctx.fillStyle='rgba(54,79,56,.7)';
-    ctx.beginPath();
-    ctx.arc(p.x-size*.22,p.y-size*.62,size*.26,0,Math.PI*2);
-    ctx.arc(p.x+size*.2,p.y-size*.58,size*.29,0,Math.PI*2);
-    ctx.fill();
-  }
-
-  // Porch/front light glow.
-  if(Math.abs(player.y-(-4))<20){
-    const p=worldToScreen(0,-3.95);
-    if(p){
-      const glow=ctx.createRadialGradient(p.x,p.y,1,p.x,p.y,Math.min(W,H)*.16);
-      glow.addColorStop(0,'rgba(255,213,143,.15)');
-      glow.addColorStop(1,'rgba(255,213,143,0)');
-      ctx.fillStyle=glow;
-      ctx.fillRect(p.x-Math.min(W,H)*.16,p.y-Math.min(W,H)*.16,Math.min(W,H)*.32,Math.min(W,H)*.32);
-    }
-  }
+  updateCamera();
 }
 
-function drawSky(){
-  const horizon=getHorizon();
-  const sky=ctx.createLinearGradient(0,0,0,horizon);
-  sky.addColorStop(0,'#6e8595');
-  sky.addColorStop(1,'#b4c4cb');
-  ctx.fillStyle=sky;
-  ctx.fillRect(0,0,W,horizon);
-
-  ctx.fillStyle='#293a2e';
-  ctx.fillRect(0,horizon,W,H-horizon);
-  // Thin cloud layers.
-  ctx.fillStyle='rgba(55,66,70,.17)';
-  for(let i=0;i<6;i++){
-    const cy=H*.08+i*H*.055+Math.sin(elapsed*.05+i)*7;
-    ctx.beginPath();
-    ctx.ellipse(W*(.12+i*.17),cy,Math.min(W,H)*.12,Math.min(W,H)*.022,0,0,Math.PI*2);
-    ctx.fill();
-  }
-}
-
-function worldToScreen(wx,wy){
-  const dx=wx-player.x,dy=wy-player.y;
-  const cs=Math.cos(-yaw),sn=Math.sin(-yaw);
-  const cx=dx*cs-dy*sn;
-  const cy=dx*sn+dy*cs;
-  if(cy>=-.01) return null;
-  const sx=W/2 + (cx/(-cy))*W/(2*Math.tan(HALF_FOV));
-  const horizon=getHorizon();
-  const sy=horizon - (player.h/(-cy))*H;
-  return {x:sx,y:sy};
-}
-
-function drawFloor(){
-  const horizon=getHorizon();
-  for(let sy=horizon+2;sy<H;sy+=2){
-    const denom=sy-horizon;
-    if(denom<=0)continue;
-    const dist=player.h*H/denom;
-    const angLeft=yaw-HALF_FOV;
-    const angRight=yaw+HALF_FOV;
-    const lx=player.x+Math.sin(angLeft)*dist;
-    const ly=player.y-Math.cos(angLeft)*dist;
-    const rx=player.x+Math.sin(angRight)*dist;
-    const ry=player.y-Math.cos(angRight)*dist;
-    const mx=(lx+rx)/2, my=(ly+ry)/2;
-
-    const road=Math.abs(my-ROAD_Y)<=ROAD_HALF;
-
-    if(road){
-      const wear=(Math.sin(mx*1.7+my*.8)+Math.sin(mx*4.9-my*1.4)+Math.sin(mx*10.1+my*4.2))*.333;
-      const v=Math.max(38,Math.min(72,54+wear*8));
-      ctx.fillStyle='rgb('+v+','+v+','+(v+2)+')';
-    }else{
-      // Multi-frequency variation gives the lawn a mottled, non-flat look.
-      const n1=Math.sin(mx*3.7+my*5.1);
-      const n2=Math.sin(mx*11.2-my*8.6);
-      const n3=Math.sin(mx*27.4+my*14.8);
-      const n=(n1*.48+n2*.32+n3*.20);
-      const wet=Math.max(0,Math.sin(mx*.45+my*.29))*4;
-      const r=Math.max(38,Math.min(105,70+n*14-wet));
-      const g=Math.max(56,Math.min(125,88+n*18+wet));
-      const b=Math.max(30,Math.min(70,45+n*9));
-      ctx.fillStyle='rgb('+r+','+g+','+b+')';
-    }
-    ctx.fillRect(0,sy,W,2);
-  }
-
-  // Dense grass blades projected into the scene.
-  for(const tuft of grassTufts){
-    const dx=tuft.x-player.x, dy=tuft.y-player.y;
-    const forward=-(dx*Math.sin(yaw)+dy*(-Math.cos(yaw)));
-    if(forward<1 || forward>32) continue;
-
-    const p=worldToScreen(tuft.x,tuft.y);
-    if(!p || p.y<getHorizon() || p.y>H) continue;
-
-    const size=Math.max(.6,Math.min(5.5,(34/forward)));
-    const height=size*tuft.h*.42;
-    const lean=tuft.lean*size*.65;
-
-    let stroke;
-    if(tuft.shade<.25) stroke='rgba(30,57,26,.78)';
-    else if(tuft.shade<.5) stroke='rgba(50,82,34,.78)';
-    else if(tuft.shade<.78) stroke='rgba(69,98,41,.76)';
-    else stroke='rgba(90,118,52,.72)';
-
-    ctx.strokeStyle=stroke;
-    ctx.lineWidth=Math.max(.6,size*.13);
-    ctx.beginPath();
-    ctx.moveTo(p.x,p.y);
-    ctx.lineTo(p.x+lean,p.y-height);
-    ctx.moveTo(p.x+size*.22,p.y);
-    ctx.lineTo(p.x+lean+size*.3,p.y-height*.82);
-    ctx.stroke();
-  }
-
-  // Foreground blades: larger and softer, giving the player a sense of being in the lawn.
-  if(player.y>ROAD_Y+ROAD_HALF){
-    for(let i=0;i<34;i++){
-      const fx=player.x-7+(i*1.13)%14;
-      const fy=player.y+1.5+(i*1.87)%8;
-      const p=worldToScreen(fx,fy);
-      if(!p || p.y<getHorizon() || p.y>H) continue;
-      const s=4+((i*17)%7);
-      ctx.strokeStyle=i%3===0?'rgba(32,57,26,.84)':'rgba(57,84,34,.72)';
-      ctx.lineWidth=1.1;
-      ctx.beginPath();
-      ctx.moveTo(p.x,p.y);
-      ctx.lineTo(p.x+(i%2?2:-2),p.y-s);
-      ctx.stroke();
-    }
-  }
-}
-
-function drawGrassShadows(){
-  // Soft irregular shadow bands where the lawn meets the road and house.
-  const horizon=getHorizon();
-  for(let i=0;i<12;i++){
-    const y=-3.7+i*.55;
-    const p=worldToScreen(0,y);
-    if(!p) continue;
-    const alpha=.025+i*.001;
-    ctx.fillStyle='rgba(18,28,18,'+alpha+')';
-    ctx.fillRect(0,Math.max(horizon,p.y-8),W,4);
-  }
-}
-
-function drawRoadMarkings(){
-  // Project a few center-line dash segments.
-  for(let y=ROAD_Y-2.2;y>ROAD_Y-80;y-=5.4){
-    if(Math.abs(y-player.y)<.5) continue;
-    const p1=worldToScreen(-.08,y);
-    const p2=worldToScreen(.08,y);
-    const p3=worldToScreen(.08,y+1.8);
-    const p4=worldToScreen(-.08,y+1.8);
-    if(!p1||!p2||!p3||!p4) continue;
-    ctx.fillStyle='#e7dfad';
-    ctx.beginPath();
-    ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.lineTo(p3.x,p3.y);ctx.lineTo(p4.x,p4.y);
-    ctx.fill();
-  }
-
-  for(let y=ROAD_Y-1.2;y>ROAD_Y-65;y-=8){
-    const a=worldToScreen(-3.65,y);
-    if(a){ctx.fillStyle='rgba(220,220,205,.6)';ctx.fillRect(a.x-1,a.y-2,2,4);}
-    const b=worldToScreen(3.65,y);
-    if(b){ctx.fillStyle='rgba(220,220,205,.6)';ctx.fillRect(b.x-1,b.y-2,2,4);}
-  }
-}
-
-function renderWalls(){
-  const horizon=getHorizon();
-
-  for(let i=0;i<RAYS;i++){
-    const cameraX=(i/(RAYS-1))-.5;
-    const rayAngle=yaw+cameraX*FOV;
-    const dx=Math.sin(rayAngle),dy=-Math.cos(rayAngle);
-    let dist=sceneDistance(player.x,player.y,dx,dy);
-    dist*=Math.cos(cameraX*FOV);
-    zBuffer[i]=dist;
-
-    const wallH=Math.min(H*2.0,(player.h/dist)*H*1.48);
-    const top=horizon-wallH;
-    const bottom=horizon+wallH*.05;
-    const sx=player.x+dx*(dist+.03);
-    const sy=player.y+dy*(dist+.03);
-
-    let base='#a58f6d';
-    if(sy<-3.7)base='#b9a174';
-    if(sx<-7.7||sx>7.5)base='#9b835f';
-    if(sy>3.4)base='#8e7958';
-
-    let rgb=hexToRgb(base);
-    const fog=Math.min(.82,Math.max(0,(dist-12)/42));
-    rgb=fogColor(rgb,fog);
-
-    ctx.fillStyle=rgbToCss(rgb);
-    ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,bottom-top);
-
-    // Painted/stucco panels and wood seams.
-    const panelPhase=Math.floor((sx+sy*1.7)*.55);
-    if(panelPhase%2===0 && wallH>24){
-      ctx.fillStyle='rgba(20,18,14,.10)';
-      ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,Math.max(1,wallH*.018));
-    }
-
-    // Front windows.
-    if(Math.abs(sy+4)<.5 && (((sx>-6.2&&sx<-2.1)||(sx>2.1&&sx<6.2)))){
-      const wxTop=top+wallH*.28;
-      const wxH=Math.max(6,wallH*.28);
-      ctx.fillStyle='rgba(22,42,51,.82)';
-      ctx.fillRect(i*(W/RAYS),wxTop,(W/RAYS)+1,wxH);
-      if(Math.floor(sx*2)%2===0){
-        ctx.fillStyle='rgba(190,214,220,.22)';
-        ctx.fillRect(i*(W/RAYS),wxTop,(W/RAYS)+1,Math.max(1,wxH*.08));
-      }
-    }
-
-    // Front door.
-    if(Math.abs(sy+4)<.5 && Math.abs(sx)<1.45){
-      ctx.fillStyle='#4a2d22';
-      ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,bottom-top);
-      ctx.fillStyle='rgba(0,0,0,.28)';
-      ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,Math.max(1,wallH*.05));
-    }
-
-    // Stronger interior light when close to the walls.
-    if(dist<8){
-      const light=(1-dist/8)*.08;
-      ctx.fillStyle='rgba(255,242,201,'+light+')';
-      ctx.fillRect(i*(W/RAYS),top,(W/RAYS)+1,bottom-top);
-    }
-  }
-}
-
-function renderNeighbor(){
-  const dx=neighbor.x-player.x,dy=neighbor.y-player.y;
-  const dist=Math.hypot(dx,dy);
-  if(dist>.05 && dist<28){
-    const angle=Math.atan2(dx,-dy);
-    const rel=normAngle(angle-yaw);
-    if(Math.abs(rel)<HALF_FOV+.18){
-      const depth=dist*Math.cos(rel);
-      if(depth>0){
-        const screenX=W/2 + Math.tan(rel)*W/(2*Math.tan(HALF_FOV));
-        const size=Math.min(H*1.2,(2.75/depth)*H);
-        const x=screenX-size*.22;
-        const y=getHorizon()-size*.7;
-        const rayIndex=Math.floor((screenX/W)*(RAYS-1));
-        const blocked=rayIndex>=0&&rayIndex<RAYS&&zBuffer[rayIndex]<depth;
-
-        if(!blocked){
-          // Ground shadow.
-          ctx.fillStyle='rgba(0,0,0,.34)';
-          ctx.beginPath();
-          ctx.ellipse(screenX,getHorizon()+size*.02,size*.30,size*.07,0,0,Math.PI*2);
-          ctx.fill();
-
-          // Legs.
-          ctx.strokeStyle='#24352a';
-          ctx.lineWidth=Math.max(2,size*.055);
-          ctx.beginPath();
-          ctx.moveTo(screenX-size*.03,y+size*.72);
-          ctx.lineTo(screenX-size*.11,y+size*.95);
-          ctx.moveTo(screenX+size*.03,y+size*.72);
-          ctx.lineTo(screenX+size*.11,y+size*.95);
-          ctx.stroke();
-
-          // Coat/body.
-          ctx.fillStyle='#2f523c';
-          ctx.fillRect(x+size*.25,y+size*.34,size*.42,size*.47);
-
-          // Arms.
-          ctx.strokeStyle='#314b39';
-          ctx.lineWidth=Math.max(2,size*.07);
-          ctx.beginPath();
-          ctx.moveTo(x+size*.27,y+size*.43);
-          ctx.lineTo(x+size*.10,y+size*.67);
-          ctx.moveTo(x+size*.65,y+size*.43);
-          ctx.lineTo(x+size*.82,y+size*.67);
-          ctx.stroke();
-
-          // Head.
-          ctx.fillStyle='#c78b67';
-          ctx.beginPath();
-          ctx.arc(screenX,y+size*.23,size*.14,0,Math.PI*2);
-          ctx.fill();
-
-          // Hat.
-          ctx.fillStyle='#283149';
-          ctx.beginPath();
-          ctx.moveTo(screenX-size*.18,y+size*.1);
-          ctx.lineTo(screenX+size*.18,y+size*.1);
-          ctx.lineTo(screenX,y-size*.04);
-          ctx.closePath();
-          ctx.fill();
-
-          // Face shadow.
-          ctx.fillStyle='rgba(50,20,15,.22)';
-          ctx.beginPath();
-          ctx.arc(screenX+size*.06,y+size*.25,size*.11,0,Math.PI);
-          ctx.fill();
-
-          // Eyes.
-          ctx.fillStyle='#111';
-          ctx.fillRect(screenX-size*.08,y+size*.21,size*.035,size*.03);
-          ctx.fillRect(screenX+size*.045,y+size*.21,size*.035,size*.03);
-        }
-      }
-    }
-  }
-}
-
-function drawDoorHint(){
-  const d=Math.hypot(player.x,player.y+3.9);
-  if(d<3.3){
-    hint.textContent=door.open?'E — Close Door':'E — Open Door';
-  }else if(!gameOver){
-    if(player.y<4.5) objective.textContent='Objective: Find your way through the house.';
-    if(player.y<2) objective.textContent='Objective: Explore the house. Find a way upstairs.';
-    if(player.h>2.2) objective.textContent='Objective: You reached the upper level.';
-  }
-}
-
-function drawAtmosphere(){
-  const g=ctx.createRadialGradient(W/2,H*.48,Math.min(W,H)*.18,W/2,H*.48,Math.max(W,H)*.72);
-  g.addColorStop(0,'rgba(0,0,0,0)');
-  g.addColorStop(.65,'rgba(0,0,0,.10)');
-  g.addColorStop(1,'rgba(0,0,0,.58)');
-  ctx.fillStyle=g;
-  ctx.fillRect(0,0,W,H);
-
-  const top=ctx.createLinearGradient(0,0,0,H*.22);
-  top.addColorStop(0,'rgba(0,0,0,.28)');
-  top.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=top;
-  ctx.fillRect(0,0,W,H*.22);
-}
-
-
-function findDaeInZip(zip){
-  return Object.values(zip.files).find(f=>!f.dir&&f.name.toLowerCase().endsWith('.dae'))||null;
-}
-
-async function findDaeRecursive(zip,depth=0){
-  const direct=findDaeInZip(zip);
-  if(direct) return {zip,file:direct};
-  if(depth>=2) return null;
-  const nested=Object.values(zip.files).filter(f=>!f.dir&&f.name.toLowerCase().endsWith('.zip'));
-  for(const entry of nested){
-    try{
-      const nestedZip=await JSZip.loadAsync(await entry.async('arraybuffer'));
-      const found=await findDaeRecursive(nestedZip,depth+1);
-      if(found) return found;
-    }catch(e){}
-  }
-  return null;
-}
-
-async function buildRoadTextureMap(zip,map){
-  for(const entry of Object.values(zip.files)){
-    if(entry.dir) continue;
-    const name=entry.name.toLowerCase();
-    if(!/\.(png|jpe?g|webp)$/i.test(name)) continue;
-    const base=entry.name.split('/').pop().toLowerCase();
-    if(map.has(base)) continue;
-    try{
-      const bytes=await entry.async('uint8array');
-      const ext=base.endsWith('.png')?'png':(base.endsWith('.webp')?'webp':'jpeg');
-      map.set(base,URL.createObjectURL(new Blob([bytes],{type:'image/'+ext})));
-    }catch(e){}
-  }
-}
-
-async function loadRoadModel(){
-  if(roadLoadStarted) return;
-  roadLoadStarted=true;
-  const startedAt=performance.now();
-
-  while((!window.THREE||!window.THREE.ColladaLoader||!window.JSZip)&&performance.now()-startedAt<15000){
-    await new Promise(r=>setTimeout(r,100));
-  }
-  if(!window.THREE||!window.THREE.ColladaLoader||!window.JSZip) return;
-
-  try{
-    const roadCanvas=document.getElementById('road3d');
-    roadRenderer=new THREE.WebGLRenderer({
-      canvas:roadCanvas,antialias:true,alpha:true,powerPreference:'high-performance'
-    });
-    roadRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
-    roadRenderer.setSize(W,H,false);
-    roadRenderer.setClearColor(0x000000,0);
-
-    roadScene=new THREE.Scene();
-    roadCamera=new THREE.PerspectiveCamera(60,W/Math.max(1,H),0.05,140);
-    roadScene.add(new THREE.HemisphereLight(0xdde7ec,0x23301f,1.5));
-    const key=new THREE.DirectionalLight(0xffead0,1.35);
-    key.position.set(-12,18,10);
-    roadScene.add(key);
-    roadRoot=new THREE.Group();
-    roadScene.add(roadRoot);
-
-    const response=await fetch('assets/road-hd.zip',{cache:'no-store'});
-    if(!response.ok) throw new Error('Road asset HTTP '+response.status);
-    const outerZip=await JSZip.loadAsync(await response.arrayBuffer());
-    const found=await findDaeRecursive(outerZip);
-    if(!found) throw new Error('No DAE model found in road-hd.zip');
-
-    const textureUrls=new Map();
-    await buildRoadTextureMap(outerZip,textureUrls);
-    for(const entry of Object.values(outerZip.files)){
-      if(entry.dir||!entry.name.toLowerCase().endsWith('.zip')) continue;
-      try{
-        const nestedZip=await JSZip.loadAsync(await entry.async('arraybuffer'));
-        await buildRoadTextureMap(nestedZip,textureUrls);
-      }catch(e){}
-    }
-
-    const manager=new THREE.LoadingManager();
-    manager.setURLModifier(url=>{
-      const base=decodeURIComponent(url).split('?')[0].split('/').pop().toLowerCase();
-      return textureUrls.get(base)||url;
-    });
-
-    const daeText=await found.file.async('text');
-    const loader=new THREE.ColladaLoader(manager);
-    const result=loader.parse(daeText,'');
-    const model=result.scene;
-
-    model.rotation.x=-Math.PI/2;
-    model.updateMatrixWorld(true);
-
-    let box=new THREE.Box3().setFromObject(model);
-    let size=box.getSize(new THREE.Vector3());
-    const desiredWidth=8.4;
-    model.scale.setScalar(desiredWidth/Math.max(.001,size.x));
-    model.updateMatrixWorld(true);
-
-    box=new THREE.Box3().setFromObject(model);
-    const center=box.getCenter(new THREE.Vector3());
-    model.position.sub(center);
-
-    box.setFromObject(model);
-    model.position.y-=box.min.y;
-
-    box.setFromObject(model);
-    size=box.getSize(new THREE.Vector3());
-    const segment=Math.max(10,size.z*.98);
-
-    for(let i=0;i<4;i++){
-      const piece=i===0?model:model.clone(true);
-      piece.position.z=ROAD_Y-2-i*segment;
-      roadRoot.add(piece);
-    }
-
-    roadRoot.traverse(obj=>{
-      if(!obj.isMesh) return;
-      obj.castShadow=false;
-      obj.receiveShadow=true;
-      if(obj.material){
-        const mats=Array.isArray(obj.material)?obj.material:[obj.material];
-        for(const m of mats){
-          if(m.map) continue;
-          if('roughness' in m) m.roughness=.88;
-          if('metalness' in m) m.metalness=.02;
-        }
-      }
-    });
-
-    roadModelReady=true;
-  }catch(err){
-    console.warn('HD road model unavailable; keeping procedural road.',err);
-    roadModelReady=false;
-  }
-}
-
-function renderRoadModel(){
-  if(!roadRenderer||!roadScene||!roadCamera||!roadModelReady) return;
-  roadCamera.position.set(player.x,player.h,player.y);
-  roadCamera.rotation.order='YXZ';
-  roadCamera.rotation.y=yaw;
-  roadCamera.rotation.x=-pitch;
-  roadCamera.updateMatrixWorld();
-  roadRenderer.render(roadScene,roadCamera);
-}
-
-
-async function loadHouseModel(){
-  if(houseLoadStarted) return;
-  houseLoadStarted=true;
-  const startedAt=performance.now();
-
-  while((!window.__HOUSE_THREE||!window.__HOUSE_USDZLoader)&&performance.now()-startedAt<15000){
-    await new Promise(r=>setTimeout(r,100));
-  }
-  if(!window.__HOUSE_THREE||!window.__HOUSE_USDZLoader) return;
-
-  const THREE_H=window.__HOUSE_THREE;
-
-  try{
-    const houseCanvas=document.getElementById('house3d');
-    houseRenderer=new THREE_H.WebGLRenderer({
-      canvas:houseCanvas,
-      antialias:true,
-      alpha:true,
-      powerPreference:'high-performance'
-    });
-    houseRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
-    houseRenderer.setSize(W,H,false);
-    houseRenderer.setClearColor(0x000000,0);
-
-    houseScene=new THREE_H.Scene();
-    houseCamera=new THREE_H.PerspectiveCamera(60,W/Math.max(1,H),0.05,140);
-
-    houseScene.add(new THREE_H.HemisphereLight(0xdde7ec,0x24301f,1.65));
-    const key=new THREE_H.DirectionalLight(0xffe6c8,1.2);
-    key.position.set(-10,20,12);
-    houseScene.add(key);
-
-    houseRoot=new THREE_H.Group();
-    houseScene.add(houseRoot);
-
-    const loader=new window.__HOUSE_USDZLoader();
-    loader.load('assets/Hello_Neighbor_House_Act_1.usdz',(loaded)=>{
-      const model=loaded.scene||loaded;
-      if(!model) throw new Error('USDZ loader returned no scene');
-
-      model.updateMatrixWorld(true);
-
-      let box=new THREE_H.Box3().setFromObject(model);
-      let size=box.getSize(new THREE_H.Vector3());
-      const desiredWidth=16.0;
-      const scale=desiredWidth/Math.max(0.001,size.x);
-      model.scale.setScalar(scale);
-      model.updateMatrixWorld(true);
-
-      box=new THREE_H.Box3().setFromObject(model);
-      const center=box.getCenter(new THREE_H.Vector3());
-      model.position.x-=center.x;
-      model.position.z-=center.z;
-
-      box.setFromObject(model);
-      model.position.y-=box.min.y;
-      model.position.z+=-4.0;
-
-      model.traverse(obj=>{
-        if(!obj.isMesh) return;
-        obj.castShadow=false;
-        obj.receiveShadow=true;
-        const mats=Array.isArray(obj.material)?obj.material:[obj.material];
-        for(const m of mats){
-          if('roughness' in m) m.roughness=Math.max(.6,m.roughness??.8);
-          if('metalness' in m) m.metalness=Math.min(.08,m.metalness??0);
-        }
-      });
-
-      houseRoot.add(model);
-      houseModelReady=true;
-      objective.textContent='Objective: Get inside the house and explore.';
-      hint.textContent='Reach the house. E opens the front door.';
-    },undefined,(err)=>{
-      console.warn('House USDZ model unavailable; keeping procedural house.',err);
-      houseModelReady=false;
-    });
-  }catch(err){
-    console.warn('House renderer unavailable; keeping procedural house.',err);
-    houseModelReady=false;
-  }
-}
-
-function renderHouseModel(){
-  if(!houseRenderer||!houseScene||!houseCamera||!houseModelReady) return;
-  houseCamera.position.set(player.x,player.h,player.y);
-  houseCamera.rotation.order='YXZ';
-  houseCamera.rotation.y=yaw;
-  houseCamera.rotation.x=-pitch;
-  houseCamera.updateMatrixWorld();
-  houseRenderer.render(houseScene,houseCamera);
+async function loadAll(){
+  const results=await Promise.allSettled([loadHouse(),loadRoad()]);
+  if(!houseLoaded) addFallbackHouse();
+
+  loadingDone=true;
+  boot.style.display='none';
+  playButton.disabled=false;
+  playButton.textContent='PLAY';
+  hint.textContent=houseLoaded&&roadLoaded
+    ?'Models online. Reach the house. E opens the front door.'
+    :'3D world ready. Reach the house.';
 }
 
 function render(){
-  drawSky();
-  drawEnvironmentDetails();
-  drawFloor();
-  drawRoadMarkings();
-  drawGrassShadows();
-  if(!houseModelReady) renderWalls();
-  renderNeighbor();
-  drawDoorHint();
-  drawAtmosphere();
-  renderRoadModel();
-  renderHouseModel();
+  renderer.render(scene,camera);
 }
 
 function loop(now){
   const dt=Math.min(.05,(now-lastTime)/1000);
   lastTime=now;
   elapsed+=dt;
-  if(started&&!gameOver){
-    updatePlayer(dt);
-    updateNeighbor(dt);
-  }
+  updateWorld(dt);
   render();
-  if(!gameReady){
-    gameReady=true;
-    boot.style.display='none';
-    playButton.disabled=false;
-    playButton.textContent='PLAY';
-  }
   requestAnimationFrame(loop);
 }
 
-loadRoadModel();
-loadHouseModel();
+addEventListener('resize',()=>{
+  renderer.setSize(innerWidth,innerHeight,false);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+});
 
-requestAnimationFrame(loop);
+playButton.addEventListener('click',startGame);
+restartButton.addEventListener('click',resetGame);
 
-window.addEventListener('error', (event) => {
-  if(!gameReady){
-    boot.textContent='Game failed to start. Press Ctrl+Shift+R to retry.';
-    boot.style.background='#140000';
+window.addEventListener('error',e=>{
+  console.error(e.error||e.message);
+  if(!loadingDone){
+    showError('A startup error occurred. Refresh with Ctrl+Shift+R.');
   }
 });
-})();
 
+loadAll();
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
