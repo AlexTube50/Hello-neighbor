@@ -20,3 +20,8 @@ The game has a self-contained browser renderer with no required external 3D libr
 The player starts on the grass behind the house, opposite the road.
 
 Every push to main automatically deploys through GitHub Pages.
+
+
+## Recent visual update
+
+The imported house model is no longer loaded by the browser game. The lawn uses layered procedural shading and dense grass-blade rendering for a more realistic appearance.

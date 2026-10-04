@@ -95,6 +95,8 @@ let W=innerWidth, H=innerHeight;
 let started=false, gameOver=false, gameReady=false;
 let yaw=0, pitch=0;
 let cameraBob=0, walkCycle=0, elapsed=0, stamina=100;
+let grassSeed=1337;
+const grassTufts=[];
 let lastTime=performance.now();
 let mouseLook=false;
 const keys=new Set();
@@ -169,6 +171,20 @@ function resize(){
 }
 addEventListener('resize',resize);
 resize();
+
+function seededRandom(){
+  grassSeed=(grassSeed*1664525+1013904223)>>>0;
+  return grassSeed/4294967296;
+}
+for(let i=0;i<420;i++){
+  grassTufts.push({
+    x:-34+seededRandom()*68,
+    y:-2+seededRandom()*27,
+    h:3+seededRandom()*7,
+    lean:-1+seededRandom()*2,
+    shade:seededRandom()
+  });
+}
 
 function normAngle(a){
   while(a>Math.PI)a-=Math.PI*2;
@@ -553,7 +569,7 @@ function worldToScreen(wx,wy){
 
 function drawFloor(){
   const horizon=getHorizon();
-  for(let sy=horizon+2;sy<H;sy+=3){
+  for(let sy=horizon+2;sy<H;sy+=2){
     const denom=sy-horizon;
     if(denom<=0)continue;
     const dist=player.h*H/denom;
@@ -566,37 +582,83 @@ function drawFloor(){
     const mx=(lx+rx)/2, my=(ly+ry)/2;
 
     const road=Math.abs(my-ROAD_Y)<=ROAD_HALF;
+
     if(road){
-      const wear=(Math.sin(mx*1.7+my*.8)+Math.sin(mx*4.9-my*1.4))*.5;
-      const v=Math.max(42,Math.min(68,54+wear*5));
+      const wear=(Math.sin(mx*1.7+my*.8)+Math.sin(mx*4.9-my*1.4)+Math.sin(mx*10.1+my*4.2))*.333;
+      const v=Math.max(38,Math.min(72,54+wear*8));
       ctx.fillStyle='rgb('+v+','+v+','+(v+2)+')';
     }else{
-      const n=(Math.sin(mx*6.13+my*3.71)+Math.sin(mx*15.7-my*8.2)+Math.sin(mx*31.1+my*12.4))*.5;
-      const r=Math.max(48,Math.min(102,76+n*10));
-      const g=Math.max(65,Math.min(116,91+n*13));
-      const b=Math.max(38,Math.min(68,49+n*7));
+      // Multi-frequency variation gives the lawn a mottled, non-flat look.
+      const n1=Math.sin(mx*3.7+my*5.1);
+      const n2=Math.sin(mx*11.2-my*8.6);
+      const n3=Math.sin(mx*27.4+my*14.8);
+      const n=(n1*.48+n2*.32+n3*.20);
+      const wet=Math.max(0,Math.sin(mx*.45+my*.29))*4;
+      const r=Math.max(38,Math.min(105,70+n*14-wet));
+      const g=Math.max(56,Math.min(125,88+n*18+wet));
+      const b=Math.max(30,Math.min(70,45+n*9));
       ctx.fillStyle='rgb('+r+','+g+','+b+')';
     }
-    const depthFade=Math.min(.62,Math.max(0,(dist-8)/65));
-    ctx.fillStyle='rgba(80,92,96,'+depthFade+')';
-    ctx.fillRect(0,sy,W,3);
+    ctx.fillRect(0,sy,W,2);
   }
 
-  // Subtle grass blades near the player.
-  if(player.y>ROAD_Y){
-    for(let i=0;i<38;i++){
-      const gx=player.x+Math.sin(i*17.1+elapsed)*7;
-      const gy=player.y+5+(i%9)*1.4;
-      const p=worldToScreen(gx,gy);
-      if(p && p.y>getHorizon()){
-        const h=5+((i*13)%8);
-        ctx.strokeStyle='rgba(30,55,28,.55)';
-        ctx.beginPath();
-        ctx.moveTo(p.x,p.y);
-        ctx.lineTo(p.x+Math.sin(i)*2,p.y-h);
-        ctx.stroke();
-      }
+  // Dense grass blades projected into the scene.
+  for(const tuft of grassTufts){
+    const dx=tuft.x-player.x, dy=tuft.y-player.y;
+    const forward=-(dx*Math.sin(yaw)+dy*(-Math.cos(yaw)));
+    if(forward<1 || forward>32) continue;
+
+    const p=worldToScreen(tuft.x,tuft.y);
+    if(!p || p.y<getHorizon() || p.y>H) continue;
+
+    const size=Math.max(.6,Math.min(5.5,(34/forward)));
+    const height=size*tuft.h*.42;
+    const lean=tuft.lean*size*.65;
+
+    let stroke;
+    if(tuft.shade<.25) stroke='rgba(30,57,26,.78)';
+    else if(tuft.shade<.5) stroke='rgba(50,82,34,.78)';
+    else if(tuft.shade<.78) stroke='rgba(69,98,41,.76)';
+    else stroke='rgba(90,118,52,.72)';
+
+    ctx.strokeStyle=stroke;
+    ctx.lineWidth=Math.max(.6,size*.13);
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y);
+    ctx.lineTo(p.x+lean,p.y-height);
+    ctx.moveTo(p.x+size*.22,p.y);
+    ctx.lineTo(p.x+lean+size*.3,p.y-height*.82);
+    ctx.stroke();
+  }
+
+  // Foreground blades: larger and softer, giving the player a sense of being in the lawn.
+  if(player.y>ROAD_Y+ROAD_HALF){
+    for(let i=0;i<34;i++){
+      const fx=player.x-7+(i*1.13)%14;
+      const fy=player.y+1.5+(i*1.87)%8;
+      const p=worldToScreen(fx,fy);
+      if(!p || p.y<getHorizon() || p.y>H) continue;
+      const s=4+((i*17)%7);
+      ctx.strokeStyle=i%3===0?'rgba(32,57,26,.84)':'rgba(57,84,34,.72)';
+      ctx.lineWidth=1.1;
+      ctx.beginPath();
+      ctx.moveTo(p.x,p.y);
+      ctx.lineTo(p.x+(i%2?2:-2),p.y-s);
+      ctx.stroke();
     }
+  }
+}
+
+function drawGrassShadows(){
+  // Soft irregular shadow bands where the lawn meets the road and house.
+  const horizon=getHorizon();
+  for(let i=0;i<12;i++){
+    const y=-3.7+i*.55;
+    const p=worldToScreen(0,y);
+    if(!p) continue;
+    const alpha=.025+i*.001;
+    ctx.fillStyle='rgba(18,28,18,'+alpha+')';
+    ctx.fillRect(0,Math.max(horizon,p.y-8),W,4);
   }
 }
 
@@ -797,6 +859,7 @@ function render(){
   drawEnvironmentDetails();
   drawFloor();
   drawRoadMarkings();
+  drawGrassShadows();
   renderWalls();
   renderNeighbor();
   drawDoorHint();
