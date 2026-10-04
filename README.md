@@ -30,3 +30,13 @@ Upload the road model to:
 `assets/road/road01.dae`
 
 The game attempts to load both assets automatically and keeps the built-in scene as a fallback. The player spawns behind the house, opposite the road/front side.
+
+
+## Main menu Neighbor
+
+Upload these two files from the Secret Neighbor package:
+
+`assets/menu-neighbor/SN Neighbor.fbx`
+`assets/menu-neighbor/Texture.png`
+
+The game loads the Neighbor model into the black main menu and rotates it slowly. Clicking **PLAY** switches to the game scene and starts the player on the grass behind the house.

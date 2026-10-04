@@ -54,6 +54,7 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
   const play = $('play');
 
   let scene, camera, renderer, clock;
+  let menuScene, menuCamera, menuNeighbor, menuClock;
   let yaw = Math.PI, pitch = 0, verticalVelocity = 0, grounded = true;
   let started = false;
   let gameOver = false;
@@ -109,6 +110,7 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
     requestAnimationFrame(loop);
     // Custom assets load after the scene is already running. A failed asset cannot blank the game.
     setTimeout(loadAssets, 50);
+    setTimeout(loadMenuNeighbor, 50);
   }
 
   function addWorld(){
@@ -191,7 +193,11 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
 
   function startGame(){
     started = true;
+    camera.position.set(0,1.75,30);
+    yaw=0; pitch=0;
+    camera.rotation.set(0,0,0);
     start.style.display='none';
+    menuNeighbor = menuNeighbor || null;
     loading.style.display='none';
     message.textContent='';
     document.body.requestPointerLock().catch(() => {});
@@ -381,6 +387,23 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
     document.body.requestPointerLock().catch(() => {});
   }
 
+  function loadMenuNeighbor(){
+    try{
+      const loader = new FBXLoader();
+      loader.setResourcePath('./assets/menu-neighbor/');
+      loader.load('./assets/menu-neighbor/SN Neighbor.fbx', obj => {
+        frameAndPositionModel(obj, 5.2);
+        obj.position.set(0,0,0);
+        menuNeighbor=obj;
+        menuScene.add(obj);
+      }, undefined, () => {
+        // Menu remains black with title and Play button when the optional model is missing.
+      });
+    }catch(err){
+      console.info('Menu Neighbor asset unavailable.', err);
+    }
+  }
+
   function frameAndPositionModel(model, targetSize=24){
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
@@ -450,6 +473,10 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
     if(!camera || !renderer) return;
     camera.aspect=innerWidth/innerHeight;
     camera.updateProjectionMatrix();
+    if(menuCamera){
+      menuCamera.aspect=innerWidth/innerHeight;
+      menuCamera.updateProjectionMatrix();
+    }
     renderer.setSize(innerWidth,innerHeight);
   });
 
