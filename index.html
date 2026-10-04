@@ -38,6 +38,9 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 #road3d{
  position:fixed;inset:0;width:100%;height:100%;display:block;z-index:4;pointer-events:none;
 }
+#house3d{
+ position:fixed;inset:0;width:100%;height:100%;display:block;z-index:5;pointer-events:none;
+}
 #blackout{
  position:fixed;inset:0;display:none;z-index:30;align-items:center;justify-content:center;
  background:rgba(0,0,0,.82);color:#fff;text-align:center
@@ -49,6 +52,20 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/loaders/ColladaLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.142.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as HOUSE_THREE from 'three';
+import { USDZLoader } from 'three/addons/loaders/USDZLoader.js';
+window.__HOUSE_THREE = HOUSE_THREE;
+window.__HOUSE_USDZLoader = USDZLoader;
+</script>
 </head>
 <body>
 <div id="boot">Loading game...</div>
@@ -63,6 +80,7 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 
 <canvas id="game" tabindex="0"></canvas>
 <canvas id="road3d" aria-hidden="true"></canvas>
+<canvas id="house3d" aria-hidden="true"></canvas>
 
 <div id="hud">
   <div id="crosshair"></div>
@@ -105,6 +123,8 @@ let cameraBob=0, walkCycle=0, elapsed=0, stamina=100;
 let grassSeed=1337;
 let roadRenderer=null, roadScene=null, roadCamera=null, roadRoot=null;
 let roadModelReady=false, roadLoadStarted=false;
+let houseRenderer=null, houseScene=null, houseCamera=null, houseRoot=null;
+let houseModelReady=false, houseLoadStarted=false;
 const grassTufts=[];
 let lastTime=performance.now();
 let mouseLook=false;
@@ -181,6 +201,11 @@ function resize(){
     roadRenderer.setSize(W,H,false);
     roadCamera.aspect=W/Math.max(1,H);
     roadCamera.updateProjectionMatrix();
+  }
+  if(houseRenderer&&houseCamera){
+    houseRenderer.setSize(W,H,false);
+    houseCamera.aspect=W/Math.max(1,H);
+    houseCamera.updateProjectionMatrix();
   }
 }
 addEventListener('resize',resize);
@@ -1015,17 +1040,112 @@ function renderRoadModel(){
   roadRenderer.render(roadScene,roadCamera);
 }
 
+
+async function loadHouseModel(){
+  if(houseLoadStarted) return;
+  houseLoadStarted=true;
+  const startedAt=performance.now();
+
+  while((!window.__HOUSE_THREE||!window.__HOUSE_USDZLoader)&&performance.now()-startedAt<15000){
+    await new Promise(r=>setTimeout(r,100));
+  }
+  if(!window.__HOUSE_THREE||!window.__HOUSE_USDZLoader) return;
+
+  const THREE_H=window.__HOUSE_THREE;
+
+  try{
+    const houseCanvas=document.getElementById('house3d');
+    houseRenderer=new THREE_H.WebGLRenderer({
+      canvas:houseCanvas,
+      antialias:true,
+      alpha:true,
+      powerPreference:'high-performance'
+    });
+    houseRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+    houseRenderer.setSize(W,H,false);
+    houseRenderer.setClearColor(0x000000,0);
+
+    houseScene=new THREE_H.Scene();
+    houseCamera=new THREE_H.PerspectiveCamera(60,W/Math.max(1,H),0.05,140);
+
+    houseScene.add(new THREE_H.HemisphereLight(0xdde7ec,0x24301f,1.65));
+    const key=new THREE_H.DirectionalLight(0xffe6c8,1.2);
+    key.position.set(-10,20,12);
+    houseScene.add(key);
+
+    houseRoot=new THREE_H.Group();
+    houseScene.add(houseRoot);
+
+    const loader=new window.__HOUSE_USDZLoader();
+    loader.load('assets/Hello_Neighbor_House_Act_1.usdz',(loaded)=>{
+      const model=loaded.scene||loaded;
+      if(!model) throw new Error('USDZ loader returned no scene');
+
+      model.updateMatrixWorld(true);
+
+      let box=new THREE_H.Box3().setFromObject(model);
+      let size=box.getSize(new THREE_H.Vector3());
+      const desiredWidth=16.0;
+      const scale=desiredWidth/Math.max(0.001,size.x);
+      model.scale.setScalar(scale);
+      model.updateMatrixWorld(true);
+
+      box=new THREE_H.Box3().setFromObject(model);
+      const center=box.getCenter(new THREE_H.Vector3());
+      model.position.x-=center.x;
+      model.position.z-=center.z;
+
+      box.setFromObject(model);
+      model.position.y-=box.min.y;
+      model.position.z+=-4.0;
+
+      model.traverse(obj=>{
+        if(!obj.isMesh) return;
+        obj.castShadow=false;
+        obj.receiveShadow=true;
+        const mats=Array.isArray(obj.material)?obj.material:[obj.material];
+        for(const m of mats){
+          if('roughness' in m) m.roughness=Math.max(.6,m.roughness??.8);
+          if('metalness' in m) m.metalness=Math.min(.08,m.metalness??0);
+        }
+      });
+
+      houseRoot.add(model);
+      houseModelReady=true;
+      objective.textContent='Objective: Get inside the house and explore.';
+      hint.textContent='Reach the house. E opens the front door.';
+    },undefined,(err)=>{
+      console.warn('House USDZ model unavailable; keeping procedural house.',err);
+      houseModelReady=false;
+    });
+  }catch(err){
+    console.warn('House renderer unavailable; keeping procedural house.',err);
+    houseModelReady=false;
+  }
+}
+
+function renderHouseModel(){
+  if(!houseRenderer||!houseScene||!houseCamera||!houseModelReady) return;
+  houseCamera.position.set(player.x,player.h,player.y);
+  houseCamera.rotation.order='YXZ';
+  houseCamera.rotation.y=yaw;
+  houseCamera.rotation.x=-pitch;
+  houseCamera.updateMatrixWorld();
+  houseRenderer.render(houseScene,houseCamera);
+}
+
 function render(){
   drawSky();
   drawEnvironmentDetails();
   drawFloor();
   drawRoadMarkings();
   drawGrassShadows();
-  renderWalls();
+  if(!houseModelReady) renderWalls();
   renderNeighbor();
   drawDoorHint();
   drawAtmosphere();
   renderRoadModel();
+  renderHouseModel();
 }
 
 function loop(now){
@@ -1047,6 +1167,7 @@ function loop(now){
 }
 
 loadRoadModel();
+loadHouseModel();
 
 requestAnimationFrame(loop);
 
