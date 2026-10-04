@@ -2,436 +2,415 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Hello Neighbor: The Dark Secrets</title>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a0d0f;font-family:Arial,Helvetica,sans-serif}
-#game{position:fixed;inset:0;width:100%;height:100%;display:block}
-#boot{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#050707;color:#fff;font-size:20px}
-#boot small{margin-top:10px;color:#9da6ab;font-size:13px}
-#menu{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,rgba(25,29,31,.96),rgba(0,0,0,.99) 78%);color:#fff;text-align:center}
-#menuBox{max-width:850px;padding:44px;text-shadow:0 3px 20px rgba(0,0,0,.95)}
-#menu h1{margin:0 0 14px;font-size:clamp(34px,5vw,62px)}
-#menu p{margin:8px 0;color:#d6dbde;font-size:17px;line-height:1.55}
-#play{margin-top:22px;padding:14px 48px;border:0;border-radius:7px;background:#fff;color:#111;font-size:20px;font-weight:800;cursor:pointer}
-#play:hover{background:#e4e4e4}
-#hud{position:fixed;inset:0;z-index:10;pointer-events:none;color:#fff}
-.panel{position:absolute;padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(4,7,8,.48);backdrop-filter:blur(6px);box-shadow:0 4px 15px rgba(0,0,0,.18);text-shadow:0 1px 4px #000}
-#objective{left:14px;top:14px}
-#status{right:14px;top:14px}
-#assets{right:14px;top:62px;font-size:12px;line-height:1.6}
-#hint{left:50%;bottom:25px;transform:translateX(-50%);min-width:220px;text-align:center}
-#staminaWrap{position:absolute;left:14px;bottom:14px;width:180px;height:7px;background:rgba(0,0,0,.55);border-radius:5px;overflow:hidden}
-#stamina{width:100%;height:100%;background:#e7e7e7}
-#crosshair{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-4px;border:1px solid rgba(255,255,255,.9);border-radius:50%;box-shadow:0 0 8px rgba(255,255,255,.28)}
-#vignette{position:fixed;inset:0;z-index:8;pointer-events:none;background:radial-gradient(circle,rgba(0,0,0,0) 35%,rgba(0,0,0,.06) 65%,rgba(0,0,0,.62) 100%)}
-#caught{position:fixed;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.84);color:#fff;text-align:center}
-#caught h2{font-size:44px;margin:0 0 12px}
-#caught button{padding:11px 28px;border:0;border-radius:7px;font-weight:700;cursor:pointer}
-#problem{display:none;position:fixed;left:50%;bottom:68px;transform:translateX(-50%);z-index:60;max-width:min(760px,90vw);padding:10px 14px;background:rgba(94,8,8,.9);border-radius:8px;color:#fff;font-size:13px;text-align:center}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#070a0c;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#fff}
+button{font:inherit}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;outline:0}
+#boot,#menu,#caught,#problem{position:fixed;inset:0}
+#boot{z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#070a0c}
+#bootTitle{font-size:clamp(28px,5vw,52px);font-weight:850;letter-spacing:-.04em}
+#bootText{margin-top:10px;color:#aeb8bd;font-size:14px}
+#bootBar{width:min(340px,76vw);height:4px;margin-top:18px;border-radius:99px;background:#1a2226;overflow:hidden}
+#bootBar i{display:block;width:40%;height:100%;background:#fff;border-radius:99px;animation:slide 1.1s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-140%)}65%,100%{transform:translateX(360%)}}
+#menu{z-index:60;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,rgba(72,84,90,.18),transparent 42%),linear-gradient(180deg,rgba(3,5,6,.73),rgba(3,5,6,.97))}
+#menuBox{width:min(820px,92vw);padding:44px 34px;border:1px solid rgba(255,255,255,.1);border-radius:18px;background:rgba(8,11,13,.8);box-shadow:0 22px 90px rgba(0,0,0,.55);text-align:center}
+#menu h1{margin:0;font-size:clamp(36px,6vw,64px);line-height:1;letter-spacing:-.045em}
+#menu h2{margin:12px 0 0;font-size:14px;letter-spacing:.28em;color:#b9c1c5;font-weight:750}
+#menu p{margin:18px 0 0;color:#d3d9dc;line-height:1.55}
+#menu .controls{font-size:14px;color:#aeb7bc}
+#play{margin-top:24px;padding:14px 58px;border:0;border-radius:10px;background:#fff;color:#111;font-size:19px;font-weight:850;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.28)}
+#play:hover{background:#f1f1f1}
+#play:active{transform:translateY(1px)}
+#play:disabled{opacity:.7;cursor:wait}
+#menuStatus{margin-top:14px;color:#8f9ba1;font-size:12px}
+#hud{position:fixed;inset:0;z-index:20;pointer-events:none}
+.panel{position:absolute;padding:9px 12px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(5,8,9,.64);box-shadow:0 6px 24px rgba(0,0,0,.16);text-shadow:0 1px 5px #000}
+#objective{top:14px;left:14px;font-size:13px}
+#status{top:14px;right:14px;font-size:13px}
+#assets{top:54px;right:14px;font-size:12px;line-height:1.65}
+#hint{bottom:24px;left:50%;transform:translateX(-50%);min-width:250px;text-align:center;font-size:13px}
+#staminaWrap{left:14px;bottom:15px;position:absolute;width:190px;height:7px;border-radius:99px;background:rgba(0,0,0,.6);overflow:hidden}
+#stamina{width:100%;height:100%;background:#efefef}
+#crosshair{position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-5px;border:1px solid rgba(255,255,255,.88);border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.18)}
+#vignette{position:fixed;inset:0;z-index:18;pointer-events:none;background:radial-gradient(circle,transparent 42%,rgba(0,0,0,.08) 68%,rgba(0,0,0,.52) 100%)}
+#caught{z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.86)}
+#caughtBox{width:min(440px,88vw);padding:34px;text-align:center;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(8,11,13,.94)}
+#caught h3{margin:0;font-size:42px}
+#caught p{margin:9px 0 0;color:#b7c0c4}
+#restart{margin-top:20px;padding:11px 30px;border:0;border-radius:9px;background:#fff;color:#111;font-weight:800;cursor:pointer}
+#problem{z-index:90;display:none;inset:auto auto 68px 50%;transform:translateX(-50%);max-width:min(800px,92vw);padding:11px 14px;background:rgba(87,10,10,.95);border:1px solid rgba(255,160,160,.25);border-radius:9px;font-size:13px;text-align:center}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/js/loaders/ColladaLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
-  }
-}
-</script>
-<script type="module">
-import {USDZLoader} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/USDZLoader.js';
-window.__USDZLoader = USDZLoader;
-</script>
 </head>
 <body>
-<div id="boot">Starting the 3D world...<small>Loading graphics.</small></div>
-<script>
-window.setTimeout(function(){
-  var b=document.getElementById('boot');
-  if(b)b.style.display='none';
-  var m=document.getElementById('menu');
-  if(m)m.style.display='flex';
-  var p=document.getElementById('play');
-  if(p){p.disabled=false;p.focus();}
-},1200);
-window.addEventListener('error',function(){
-  var b=document.getElementById('boot');
-  if(b)b.style.display='none';
-  var m=document.getElementById('menu');
-  if(m)m.style.display='flex';
-});
-</script>
+<div id="boot">
+  <div id="bootTitle">Hello Neighbor</div>
+  <div id="bootText">Ready.</div>
+  <div id="bootBar"><i></i></div>
+</div>
 
 <div id="menu">
   <div id="menuBox">
-    <h1>Hello Neighbor: The Dark Secrets</h1>
-    <p>Realistic 3D build using the house and road assets stored in the repository.</p>
-    <p><b>WASD</b> Move &nbsp; <b>Mouse</b> Look &nbsp; <b>Shift</b> Sprint &nbsp; <b>Space</b> Jump &nbsp; <b>E</b> Door &nbsp; <b>R</b> Restart</p>
-    <button id="play">PLAY</button>
+    <h1>Hello Neighbor</h1>
+    <h2>THE DARK SECRETS</h2>
+    <p>Clean 3D world. The game starts immediately when PLAY is pressed.</p>
+    <p class="controls"><b>WASD</b> move &nbsp; <b>Mouse</b> look &nbsp; <b>Shift</b> sprint &nbsp; <b>Space</b> jump &nbsp; <b>E</b> door &nbsp; <b>R</b> restart</p>
+    <button id="play" type="button">PLAY</button>
+    <div id="menuStatus">3D world is ready.</div>
   </div>
 </div>
 
-<canvas id="game" tabindex="0"></canvas>
+<canvas id="game" tabindex="0" aria-label="Hello Neighbor"></canvas>
+
 <div id="hud">
-  <div id="objective" class="panel">Objective: Get inside the house and explore.</div>
+  <div id="objective" class="panel">Objective: Reach the front door.</div>
   <div id="status" class="panel">Neighbor: PATROLLING</div>
   <div id="assets" class="panel">House: LOADING<br>Road: LOADING</div>
-  <div id="hint" class="panel">Press PLAY to begin.</div>
+  <div id="hint" class="panel">Press PLAY to enter the world.</div>
   <div id="crosshair"></div>
   <div id="staminaWrap"><div id="stamina"></div></div>
 </div>
 <div id="vignette"></div>
 
 <div id="caught">
-  <div>
-    <h2>Caught</h2>
+  <div id="caughtBox">
+    <h3>Caught</h3>
     <p>The Neighbor caught you.</p>
-    <button id="restart">RESTART</button>
+    <button id="restart" type="button">RESTART</button>
   </div>
 </div>
+
 <div id="problem"></div>
 
 <script>
+(function(){
+"use strict";
 
-const gameCanvas=document.getElementById('game');
-const menu=document.getElementById('menu');
-const play=document.getElementById('play');
-const boot=document.getElementById('boot');
-const restart=document.getElementById('restart');
-const caught=document.getElementById('caught');
-const status=document.getElementById('status');
-const assets=document.getElementById('assets');
-const hint=document.getElementById('hint');
-const objective=document.getElementById('objective');
-const staminaBar=document.getElementById('stamina');
-const problem=document.getElementById('problem');
+const $=id=>document.getElementById(id);
+const canvas=$("game"), menu=$("menu"), play=$("play"), boot=$("boot"), bootText=$("bootText");
+const restart=$("restart"), caught=$("caught"), statusEl=$("status"), assetsEl=$("assets");
+const hint=$("hint"), objective=$("objective"), staminaEl=$("stamina"), menuStatus=$("menuStatus"), problem=$("problem");
 
-let started=false,gameOver=false,pointerLocked=false;
-let yaw=0,pitch=-0.06,bob=0,walkClock=0,stamina=100,last=performance.now();
+let THREE=null;
+let renderer=null, scene=null, camera=null;
+let started=false, gameOver=false, pointerLocked=false, doorOpen=false, ready=false;
+let yaw=0,targetYaw=0,pitch=-0.07,targetPitch=-0.07,bob=0,walkClock=0,stamina=100,last=performance.now();
+let houseLoaded=false,roadLoaded=false,neighborMesh=null;
 const keys=new Set();
 
-const renderer=new THREE.WebGLRenderer({
-  canvas:gameCanvas,
-  antialias:true,
-  alpha:false,
-  powerPreference:'high-performance',
-});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
-renderer.setSize(innerWidth,innerHeight,false);
-renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.04;
+const player={x:0,z:10.5,y:1.72,vy:0,grounded:true,speed:4.8,sprint:7.25};
+const neighbor={x:-6,z:1,angle:0,speed:1.75,chase:3.25,target:null,index:0};
+const patrol=[{x:-6,z:1},{x:-6,z:-3.2},{x:5.2,z:-2.8},{x:5.5,z:2.0},{x:0,z:2.8}];
 
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x75838a);
-scene.fog=new THREE.Fog(0x75838a,34,125);
+function setBoot(text){
+  bootText.textContent=text;
+}
 
-const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,160);
-camera.rotation.order='YXZ';
-camera.position.set(0,1.72,10.5);
+function showProblem(msg){
+  problem.textContent=msg;
+  problem.style.display="block";
+  clearTimeout(showProblem.timer);
+  showProblem.timer=setTimeout(()=>problem.style.display="none",9000);
+}
 
-scene.add(new THREE.HemisphereLight(0xdce8ed,0x26321f,1.6));
+function setAssets(){
+  assetsEl.innerHTML="House: "+(houseLoaded?"<b>ONLINE</b>":"LOADING")+"<br>Road: "+(roadLoaded?"<b>ONLINE</b>":"LOADING");
+}
 
-const sunLight=new THREE.DirectionalLight(0xdbe7ef,2.15);
-sunLight.position.set(-22,30,18);
-sunLight.castShadow=true;
-sunLight.shadow.mapSize.set(2048,2048);
-sunLight.shadow.camera.left=-45;
-sunLight.shadow.camera.right=45;
-sunLight.shadow.camera.top=45;
-sunLight.shadow.camera.bottom=-45;
-sunLight.shadow.camera.near=1;
-sunLight.shadow.camera.far=100;
-scene.add(sunLight);
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src=src;
+    s.async=true;
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error("Could not load "+src));
+    document.head.appendChild(s);
+  });
+}
 
-const porchLight=new THREE.PointLight(0xffca7c,9,20,2);
-porchLight.position.set(0,3.0,-7.0);
-porchLight.castShadow=true;
-porchLight.shadow.mapSize.set(1024,1024);
-scene.add(porchLight);
+async function ensureThree(){
+  if(window.THREE)return window.THREE;
+  setBoot("Loading 3D engine...");
+  try{
+    await loadScript("https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js");
+  }catch(first){
+    await loadScript("https://unpkg.com/three@0.180.0/build/three.min.js");
+  }
+  if(!window.THREE)throw new Error("Three.js is unavailable");
+  return window.THREE;
+}
 
-scene.background=new THREE.Color(0x78868c);
+function addMesh(group,geometry,material,x,y,z,rx,ry,rz){
+  const m=new THREE.Mesh(geometry,material);
+  m.position.set(x||0,y||0,z||0);
+  if(rx)m.rotation.x=rx;
+  if(ry)m.rotation.y=ry;
+  if(rz)m.rotation.z=rz;
+  group.add(m);
+  return m;
+}
 
 function makeGroundTexture(){
-  const c=document.createElement('canvas'); c.width=c.height=256;
-  const g=c.getContext('2d');
-  const img=g.createImageData(256,256);
-  for(let i=0;i<img.data.length;i+=4){
-    const n=Math.random();
-    img.data[i]=24+Math.floor(n*38);
-    img.data[i+1]=48+Math.floor(n*56);
-    img.data[i+2]=22+Math.floor(n*24);
-    img.data[i+3]=255;
-  }
-  g.putImageData(img,0,0);
-  for(let i=0;i<1000;i++){
-    const x=Math.random()*256,y=Math.random()*256;
-    g.strokeStyle='rgba(120,145,74,'+(0.06+Math.random()*.12)+')';
-    g.lineWidth=1;
-    g.beginPath();g.moveTo(x,y);g.lineTo(x+(Math.random()-.5)*4,y-3-Math.random()*8);g.stroke();
+  const c=document.createElement("canvas");
+  c.width=c.height=256;
+  const g=c.getContext("2d");
+  g.fillStyle="#29451f";g.fillRect(0,0,256,256);
+  for(let i=0;i<1800;i++){
+    g.fillStyle="rgba(157,180,100,"+(0.025+Math.random()*.11)+")";
+    g.fillRect(Math.random()*256,Math.random()*256,1+Math.random()*2,2+Math.random()*5);
   }
   const t=new THREE.CanvasTexture(c);
   t.wrapS=t.wrapT=THREE.RepeatWrapping;
-  t.repeat.set(22,28);
+  t.repeat.set(20,26);
   t.colorSpace=THREE.SRGBColorSpace;
-  t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  t.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
   return t;
 }
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),new THREE.MeshStandardMaterial({map:makeGroundTexture(),roughness:1}));
-ground.rotation.x=-Math.PI/2;
-ground.receiveShadow=true;
-scene.add(ground);
 
-const roadBase=new THREE.Mesh(new THREE.PlaneGeometry(9,110),new THREE.MeshStandardMaterial({color:0x303437,roughness:.96,metalness:.02}));
-roadBase.rotation.x=-Math.PI/2;
-roadBase.position.set(0,.015,-55);
-roadBase.receiveShadow=true;
-scene.add(roadBase);
+function setupWorld(){
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:"high-performance"});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+  renderer.setSize(innerWidth,innerHeight,false);
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.05;
 
-const roadLineMat=new THREE.MeshStandardMaterial({color:0xe4deb4,roughness:.95});
-for(let z=-8;z>-112;z-=6){
-  const line=new THREE.Mesh(new THREE.BoxGeometry(.16,.018,2.2),roadLineMat);
-  line.position.set(0,.028,z);
-  scene.add(line);
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x7b898f);
+  scene.fog=new THREE.Fog(0x7b898f,42,125);
+
+  camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.06,180);
+  camera.rotation.order="YXZ";
+  camera.position.set(0,1.72,10.5);
+
+  scene.add(new THREE.HemisphereLight(0xeaf3f6,0x26311e,1.3));
+
+  const sun=new THREE.DirectionalLight(0xfff0d4,2.0);
+  sun.position.set(-24,32,18);
+  sun.castShadow=true;
+  sun.shadow.mapSize.set(1536,1536);
+  sun.shadow.camera.left=-48;sun.shadow.camera.right=48;
+  sun.shadow.camera.top=48;sun.shadow.camera.bottom=-48;
+  sun.shadow.camera.near=1;sun.shadow.camera.far=115;
+  scene.add(sun);
+
+  const fill=new THREE.DirectionalLight(0xbdd2df,.55);
+  fill.position.set(24,14,-12);
+  scene.add(fill);
+
+  const porch=new THREE.PointLight(0xffc77c,8,20,2);
+  porch.position.set(0,3,-7.2);
+  porch.castShadow=true;
+  porch.shadow.mapSize.set(768,768);
+  scene.add(porch);
+
+  const ground=new THREE.Mesh(
+    new THREE.PlaneGeometry(180,180),
+    new THREE.MeshStandardMaterial({map:makeGroundTexture(),roughness:1})
+  );
+  ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+  const road=new THREE.Mesh(
+    new THREE.PlaneGeometry(9,118),
+    new THREE.MeshStandardMaterial({color:0x30363a,roughness:.96,metalness:.02})
+  );
+  road.rotation.x=-Math.PI/2;road.position.set(0,.02,-58);road.receiveShadow=true;scene.add(road);
+
+  const lineMat=new THREE.MeshStandardMaterial({color:0xe7dfb5,roughness:1});
+  for(let z=-8;z>-118;z-=6){
+    const line=addMesh(scene,new THREE.BoxGeometry(.14,.022,2.15),lineMat,0,.043,z);
+    line.castShadow=false;
+  }
+
+  const edgeMat=new THREE.MeshStandardMaterial({color:0x43494d,roughness:1});
+  for(const x of [-4.4,4.4])addMesh(scene,new THREE.BoxGeometry(.08,.03,118),edgeMat,x,.035,-58);
+
+  for(let i=0;i<26;i++){
+    const side=i%2?1:-1;
+    makeTree(side*(13+Math.random()*18),-3+Math.random()*58,.9+Math.random()*.3);
+  }
+
+  buildHouseFallback();
+  buildNeighbor();
+  updateCamera(0.016);
 }
 
-for(let i=0;i<32;i++){
-  const side=i%2?-1:1;
-  const tree=new THREE.Group();
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16,.26,3.2,8),new THREE.MeshStandardMaterial({color:0x49372a,roughness:1}));
-  trunk.position.y=1.6; trunk.castShadow=true; tree.add(trunk);
-  const foliage=new THREE.MeshStandardMaterial({color:0x173722,roughness:1});
+function makeTree(x,z,s){
+  const g=new THREE.Group();
+  const trunkMat=new THREE.MeshStandardMaterial({color:0x4b392d,roughness:1});
+  const leaves=new THREE.MeshStandardMaterial({color:0x183a25,roughness:1});
+  const trunk=addMesh(g,new THREE.CylinderGeometry(.16*s,.25*s,3.2*s,8),trunkMat,0,1.6*s,0);
+  trunk.castShadow=true;
   for(let j=0;j<3;j++){
-    const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.05-j*.12,1),foliage);
-    crown.position.set((j-1)*.32,3.1+(j%2)*.22,(j-1)*.2);
-    crown.castShadow=true; tree.add(crown);
+    const crown=addMesh(g,new THREE.IcosahedronGeometry((1-.08*j)*s,1),leaves,(j-1)*.3*s,3*s+(j%2)*.22*s,(j-1)*.18*s);
+    crown.castShadow=true;
   }
-  tree.position.set(side*(14+Math.random()*18),0,-4+Math.random()*55);
-  scene.add(tree);
+  g.position.set(x,0,z);scene.add(g);
+}
+
+function enhance(root){
+  root.traverse(o=>{
+    if(!o.isMesh)return;
+    o.castShadow=true;o.receiveShadow=true;
+    const mats=Array.isArray(o.material)?o.material:[o.material];
+    mats.forEach(m=>{
+      if(!m)return;
+      if(m.map){m.map.colorSpace=THREE.SRGBColorSpace;m.map.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());m.map.needsUpdate=true}
+      if("roughness" in m)m.roughness=Math.max(.5,m.roughness);
+      if("metalness" in m)m.metalness=Math.min(.12,m.metalness);
+    });
+  });
 }
 
 const houseRoot=new THREE.Group();
 const roadRoot=new THREE.Group();
-scene.add(houseRoot,roadRoot);
-
-let houseLoaded=false,roadLoaded=false;
-let modelBounds=null;
-let modelCenter=new THREE.Vector3();
-
-function reportAsset(){
-  assets.innerHTML='House: '+(houseLoaded?'<b>ONLINE</b>':'LOADING')+'<br>Road: '+(roadLoaded?'<b>ONLINE</b>':'LOADING');
-}
-
-function enhanceMaterials(root){
-  root.traverse(o=>{
-    if(!o.isMesh)return;
-    o.castShadow=true;
-    o.receiveShadow=true;
-    const mats=Array.isArray(o.material)?o.material:[o.material];
-    for(const m of mats){
-      if(!m)continue;
-      if(m.map){
-        m.map.colorSpace=THREE.SRGBColorSpace;
-        m.map.anisotropy=renderer.capabilities.getMaxAnisotropy();
-        m.map.needsUpdate=true;
-      }
-      if('roughness' in m && Number.isFinite(m.roughness))m.roughness=Math.max(.5,m.roughness);
-      if('metalness' in m && Number.isFinite(m.metalness))m.metalness=Math.min(.1,m.metalness);
-    }
-  });
-}
-
-function fitHouse(model){
-  model.updateMatrixWorld(true);
-  let box=new THREE.Box3().setFromObject(model);
-  const size=box.getSize(new THREE.Vector3());
-  const s=16.5/Math.max(.001,size.x);
-  model.scale.setScalar(s);
-  model.updateMatrixWorld(true);
-  box.setFromObject(model);
-  const center=box.getCenter(new THREE.Vector3());
-  model.position.x-=center.x;
-  model.position.z-=center.z;
-  box.setFromObject(model);
-  model.position.y-=box.min.y;
-  model.position.z=-4.1;
-  model.updateMatrixWorld(true);
-  modelBounds=new THREE.Box3().setFromObject(model);
-  modelCenter=modelBounds.getCenter(new THREE.Vector3());
-}
-
-function fallback3DHouse(){
-  if(houseLoaded||houseRoot.children.length)return;
+function buildHouseFallback(){
   const g=new THREE.Group();
-  const wallMat=new THREE.MeshStandardMaterial({color:0x8f7457,roughness:.92});
-  const roofMat=new THREE.MeshStandardMaterial({color:0x3a3030,roughness:1});
-  const body=new THREE.Mesh(new THREE.BoxGeometry(16,6.5,8),wallMat);
-  body.position.y=3.25;g.add(body);
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(10.8,4.2,4),roofMat);
-  roof.rotation.y=Math.PI/4;roof.scale.z=.62;roof.position.y=8.3;g.add(roof);
+  const wall=new THREE.MeshStandardMaterial({color:0x8e7558,roughness:.94});
+  const upper=new THREE.MeshStandardMaterial({color:0x6c6256,roughness:.95});
+  const roof=new THREE.MeshStandardMaterial({color:0x3b3332,roughness:1});
+  const trim=new THREE.MeshStandardMaterial({color:0x26282a,roughness:1});
+  const doorMat=new THREE.MeshStandardMaterial({color:0x4a2a1e,roughness:.9});
+  addMesh(g,new THREE.BoxGeometry(16.4,4.6,8.2),wall,0,2.3,0);
+  addMesh(g,new THREE.BoxGeometry(12.8,4.0,7.2),upper,1.15,6.55,.25,0,0,-.055);
+  addMesh(g,new THREE.ConeGeometry(11.7,4.8,4),roof,1.0,9.5,.05,0,Math.PI/4);
+  addMesh(g,new THREE.BoxGeometry(5,.35,2.1),trim,0,.18,-5.05);
+  for(const x of [-2.6,2.6])addMesh(g,new THREE.BoxGeometry(.23,2.7,.23),trim,x,1.42,-5.05);
+  addMesh(g,new THREE.BoxGeometry(2,3.4,.18),doorMat,0,1.72,-4.23);
+  addMesh(g,new THREE.BoxGeometry(3,.25,1.1),trim,0,.12,-5.6);
+
+  for(const x of [-5,5]){
+    addMesh(g,new THREE.BoxGeometry(2,1.45,.16),trim,x,2.65,-4.23);
+    addMesh(g,new THREE.BoxGeometry(1.62,1.08,.11),new THREE.MeshStandardMaterial({color:0x9bbac7,roughness:.18,metalness:.1}),x,2.65,-4.34);
+  }
+  addMesh(g,new THREE.BoxGeometry(1.1,3.3,1.05),trim,-3.4,9.1,1);
+
   g.position.z=-4.1;
-  enhanceMaterials(g);
+  enhance(g);
   houseRoot.add(g);
+  scene.add(houseRoot);
 }
 
-async function loadHouse(){
+function buildNeighbor(){
+  const g=new THREE.Group();
+  const coat=new THREE.MeshStandardMaterial({color:0x31523f,roughness:.9});
+  const skin=new THREE.MeshStandardMaterial({color:0xc88c69,roughness:.92});
+  const dark=new THREE.MeshStandardMaterial({color:0x20242c,roughness:.96});
+  addMesh(g,new THREE.CapsuleGeometry(.42,1.04,5,12),coat,0,1.02,0).castShadow=true;
+  addMesh(g,new THREE.SphereGeometry(.29,18,12),skin,0,1.93,0).castShadow=true;
+  addMesh(g,new THREE.CylinderGeometry(.39,.48,.18,16),dark,0,2.21,0);
+  for(const x of [-.14,.14])addMesh(g,new THREE.CylinderGeometry(.1,.12,.78,8),dark,x,.38,0);
+  for(const x of [-.16,.16])addMesh(g,new THREE.BoxGeometry(.22,.14,.42),dark,x,.1,-.08);
+  enhance(g);
+  g.position.set(neighbor.x,0,neighbor.z);
+  scene.add(g);
+  neighborMesh=g;
+}
+
+async function loadHouseAsset(){
   try{
-    reportAsset();
-    const startedAt=performance.now();
-    while(!window.__USDZLoader&&performance.now()-startedAt<8000){
-      await new Promise(r=>setTimeout(r,100));
+    if(window.__USDZLoader===undefined){
+      const mod=await import("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/USDZLoader.js");
+      window.__USDZLoader=mod.USDZLoader;
     }
-    if(!window.__USDZLoader)throw new Error('USDZLoader unavailable');
-    const loader=new window.__USDZLoader();
+    const Loader=window.__USDZLoader;
+    if(!Loader)throw new Error("USDZLoader unavailable");
+    setAssets();
+    const loader=new Loader();
     const result=await Promise.race([
-      loader.loadAsync('assets/Hello_Neighbor_House_Act_1.usdz'),
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error('house timeout')),18000))
+      loader.loadAsync("assets/Hello_Neighbor_House_Act_1.usdz"),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("house timeout")),16000))
     ]);
-    const model=result.scene||result;
-    if(!model)throw new Error('house scene missing');
-    fitHouse(model);
-    enhanceMaterials(model);
+    const model=result&&(result.scene||result);
+    if(!model)throw new Error("house scene missing");
+    model.updateMatrixWorld(true);
+    const b=new THREE.Box3().setFromObject(model);
+    const s=b.getSize(new THREE.Vector3());
+    model.scale.setScalar(16.5/Math.max(.01,Math.max(s.x,s.z)));
+    model.updateMatrixWorld(true);
+    const b2=new THREE.Box3().setFromObject(model);
+    const c=b2.getCenter(new THREE.Vector3());
+    model.position.x-=c.x;
+    model.position.z-=c.z;
+    model.position.y-=b2.min.y;
+    model.position.z=-4.1;
+    enhance(model);
     houseRoot.clear();
     houseRoot.add(model);
     houseLoaded=true;
-    reportAsset();
-    hint.textContent=roadLoaded?'House and road models online.':'House model online. Road is loading.';
+    setAssets();
   }catch(err){
-    console.error(err);
-    houseLoaded=false;
-    fallback3DHouse();
-    reportAsset();
-    showProblem('The exact house asset could not be decoded by the browser, so the game is using a 3D fallback.');
+    console.warn("House asset kept optional:",err);
+    setAssets();
   }
 }
 
-async function findDae(zip,depth=0){
-  for(const f of Object.values(zip.files)){
-    if(!f.dir&&f.name.toLowerCase().endsWith('.dae'))return f;
-  }
-  if(depth>=2)return null;
-  for(const f of Object.values(zip.files)){
-    if(f.dir||!f.name.toLowerCase().endsWith('.zip'))continue;
-    try{
-      const inner=await JSZip.loadAsync(await f.async('arraybuffer'));
-      const found=await findDae(inner,depth+1);
-      if(found)return found;
-    }catch(e){}
-  }
-  return null;
-}
-
-async function textureMap(zip,map){
-  for(const f of Object.values(zip.files)){
-    if(f.dir||!/\.(png|jpe?g|webp)$/i.test(f.name))continue;
-    const base=f.name.split('/').pop().toLowerCase();
-    if(map.has(base))continue;
-    try{
-      const bytes=await f.async('uint8array');
-      const mime=base.endsWith('.png')?'image/png':base.endsWith('.webp')?'image/webp':'image/jpeg';
-      map.set(base,URL.createObjectURL(new Blob([bytes],{type:mime})));
-    }catch(e){}
-  }
-}
-
-async function loadRoad(){
+async function loadRoadAsset(){
   try{
-    const response=await Promise.race([
-      fetch('assets/road-hd.zip?rev=1',{cache:'no-store'}),
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error('road timeout')),18000))
-    ]);
-    if(!response.ok)throw new Error('road HTTP '+response.status);
-    const outer=await JSZip.loadAsync(await response.arrayBuffer());
-    const dae=await findDae(outer);
-    if(!dae)throw new Error('No DAE in road package');
+    if(!window.JSZip)await loadScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js");
+    if(!window.JSZip)throw new Error("JSZip unavailable");
+    await loadScript("https://cdn.jsdelivr.net/npm/three@0.180.0/examples/js/loaders/ColladaLoader.js");
+    if(!THREE.ColladaLoader)throw new Error("ColladaLoader unavailable");
 
-    const textures=new Map();
-    await textureMap(outer,textures);
-    for(const f of Object.values(outer.files)){
-      if(f.dir||!f.name.toLowerCase().endsWith('.zip'))continue;
-      try{await textureMap(await JSZip.loadAsync(await f.async('arraybuffer')),textures)}catch(e){}
+    const res=await fetch("assets/road-hd.zip?rev=3",{cache:"no-store"});
+    if(!res.ok)throw new Error("road HTTP "+res.status);
+    const zip=await JSZip.loadAsync(await res.arrayBuffer());
+    let dae=null;
+    for(const n in zip.files){
+      if(!zip.files[n].dir&&n.toLowerCase().endsWith(".dae")){dae=zip.files[n];break}
     }
+    if(!dae)throw new Error("DAE missing");
 
-    const manager=new THREE.LoadingManager();
-    manager.setURLModifier(url=>{
-      const base=decodeURIComponent(url).split('?')[0].split('/').pop().toLowerCase();
-      return textures.get(base)||url;
-    });
-
-    const daeText=await dae.async('text');
-    const parsed=new THREE.ColladaLoader(manager).parse(daeText,'');
+    const text=await dae.async("text");
+    const parsed=new THREE.ColladaLoader().parse(text,"");
     const model=parsed.scene;
     model.rotation.x=-Math.PI/2;
     model.updateMatrixWorld(true);
-    let box=new THREE.Box3().setFromObject(model);
+    const box=new THREE.Box3().setFromObject(model);
     const size=box.getSize(new THREE.Vector3());
-    model.scale.setScalar(8.8/Math.max(.001,size.x));
+    model.scale.setScalar(8.8/Math.max(.01,size.x));
     model.updateMatrixWorld(true);
-    box.setFromObject(model);
-    const center=box.getCenter(new THREE.Vector3());
+    const box2=new THREE.Box3().setFromObject(model);
+    const center=box2.getCenter(new THREE.Vector3());
     model.position.x-=center.x;
     model.position.z-=center.z;
-    box.setFromObject(model);
-    model.position.y-=box.min.y;
+    model.position.y-=box2.min.y;
+    const segment=Math.max(12,box2.getSize(new THREE.Vector3()).z*.98);
 
-    const segment=Math.max(10,box.getSize(new THREE.Vector3()).z*.98);
+    roadRoot.clear();
     for(let i=0;i<7;i++){
-      const copy=i===0?model:model.clone(true);
-      copy.position.set(0,.03,-9-i*segment);
-      enhanceMaterials(copy);
+      const copy=i?model.clone(true):model;
+      copy.position.set(0,.04,-9-i*segment);
+      enhance(copy);
       roadRoot.add(copy);
     }
     roadLoaded=true;
-    reportAsset();
-    if(houseLoaded)hint.textContent='House and road models online. Reach the house.';
+    setAssets();
   }catch(err){
-    console.error(err);
-    reportAsset();
-    showProblem('The road model could not be decoded, so the realistic built-in road remains active.');
+    console.warn("Road asset kept optional:",err);
+    setAssets();
   }
 }
 
-const player={x:0,z:10.5,y:1.72,vy:0,grounded:true,speed:4.8,sprint:7.3};
-const neighbor={x:-6,z:.8,angle:0,speed:1.8,chase:3.4,mesh:null,target:null,index:0};
-const patrol=[
-  {x:-6,z:1},
-  {x:-6,z:-3},
-  {x:5.2,z:-2.7},
-  {x:5.6,z:2.2},
-  {x:0,z:2.7}
-];
-
-function makeNeighbor(){
-  const g=new THREE.Group();
-  const coat=new THREE.MeshStandardMaterial({color:0x31513d,roughness:.9});
-  const skin=new THREE.MeshStandardMaterial({color:0xc98c68,roughness:.92});
-  const dark=new THREE.MeshStandardMaterial({color:0x202631,roughness:.95});
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,1.05,5,12),coat);body.position.y=1.02;g.add(body);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.29,18,12),skin);head.position.y=1.94;g.add(head);
-  const hat=new THREE.Mesh(new THREE.CylinderGeometry(.38,.47,.18,16),dark);hat.position.y=2.21;g.add(hat);
-  for(const sx of[-.14,.14]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.10,.12,.78,8),dark);leg.position.set(sx,.38,0);g.add(leg)}
-  enhanceMaterials(g);g.position.set(neighbor.x,0,neighbor.z);scene.add(g);neighbor.mesh=g;
-}
-makeNeighbor();
-
 function blocked(x,z){
-  // Exterior shell collision only; leave the front doorway passable when open.
-  const inHouse=x>-8.55&&x<8.55&&z>-8.3&&z<4.25;
-  if(!inHouse)return false;
-  const doorway=x>-1.45&&x<1.45&&z>-8.35&&z<-7.65;
-  return !(!doorClosed&&doorway);
+  const inside=x>-8.55&&x<8.55&&z>-8.3&&z<4.3;
+  if(!inside)return false;
+  const doorway=x>-1.25&&x<1.25&&z>-8.32&&z<-7.62;
+  return !(doorOpen&&doorway);
 }
-let doorClosed=true;
 
 function movePlayer(dx,dz){
   const nx=player.x+dx;
   if(!blocked(nx,player.z))player.x=nx;
   const nz=player.z+dz;
   if(!blocked(player.x,nz))player.z=nz;
+  player.x=Math.max(-40,Math.min(40,player.x));
+  player.z=Math.max(-118,Math.min(26,player.z));
 }
 
 function seesPlayer(){
@@ -441,16 +420,25 @@ function seesPlayer(){
   let diff=a-neighbor.angle;
   while(diff>Math.PI)diff-=Math.PI*2;
   while(diff<-Math.PI)diff+=Math.PI*2;
-  return d<=5||Math.abs(diff)<Math.PI*.4;
+  return d<5.1||Math.abs(diff)<Math.PI*.39;
 }
 
 function updateNeighbor(dt){
   const sees=seesPlayer();
-  if(sees){neighbor.target={x:player.x,z:player.z};status.textContent='Neighbor: CHASING'}
-  else if(neighbor.target&&distance(player.x,player.z,neighbor.target.x,neighbor.target.z)>8){neighbor.target=null;status.textContent='Neighbor: PATROLLING'}
+  if(sees){
+    neighbor.target={x:player.x,z:player.z};
+    statusEl.textContent="Neighbor: CHASING";
+  }else if(neighbor.target&&Math.hypot(neighbor.x-neighbor.target.x,neighbor.z-neighbor.target.z)>8.5){
+    neighbor.target=null;
+    statusEl.textContent="Neighbor: PATROLLING";
+  }
   if(!neighbor.target){
-    const p=patrol[neighbor.index];neighbor.target=p;
-    if(distance(neighbor.x,neighbor.z,p.x,p.z)<.5){neighbor.index=(neighbor.index+1)%patrol.length;neighbor.target=patrol[neighbor.index]}
+    const p=patrol[neighbor.index];
+    neighbor.target=p;
+    if(Math.hypot(neighbor.x-p.x,neighbor.z-p.z)<.5){
+      neighbor.index=(neighbor.index+1)%patrol.length;
+      neighbor.target=patrol[neighbor.index];
+    }
   }
   const dx=neighbor.target.x-neighbor.x,dz=neighbor.target.z-neighbor.z,d=Math.hypot(dx,dz);
   if(d>.02){
@@ -460,24 +448,21 @@ function updateNeighbor(dt){
     const nz=neighbor.z-Math.cos(neighbor.angle)*step;
     if(!blocked(nx,nz)){neighbor.x=nx;neighbor.z=nz}
   }
-  neighbor.mesh.position.set(neighbor.x,0,neighbor.z);
-  neighbor.mesh.rotation.y=neighbor.angle;
-  if(distance(player.x,player.z,neighbor.x,neighbor.z)<.82)catchPlayer();
+  neighborMesh.position.set(neighbor.x,0,neighbor.z);
+  neighborMesh.rotation.y=neighbor.angle;
+  if(Math.hypot(player.x-neighbor.x,player.z-neighbor.z)<.86)catchPlayer();
 }
-
-function distance(a,b,c,d){return Math.hypot(a-c,b-d)}
 
 function updatePlayer(dt){
   let ax=0,az=0;
-  if(keys.has('KeyW'))az-=1;
-  if(keys.has('KeyS'))az+=1;
-  if(keys.has('KeyA'))ax-=1;
-  if(keys.has('KeyD'))ax+=1;
-
-  const moving=ax||az;
-  const sprinting=!!moving&&(keys.has('ShiftLeft')||keys.has('ShiftRight'))&&stamina>1;
-  stamina=sprinting?Math.max(0,stamina-dt*24):Math.min(100,stamina+dt*18);
-  staminaBar.style.width=stamina+'%';
+  if(keys.has("KeyW"))az--;
+  if(keys.has("KeyS"))az++;
+  if(keys.has("KeyA"))ax--;
+  if(keys.has("KeyD"))ax++;
+  const moving=ax!==0||az!==0;
+  const sprinting=moving&&(keys.has("ShiftLeft")||keys.has("ShiftRight"))&&stamina>1;
+  stamina=sprinting?Math.max(0,stamina-dt*22):Math.min(100,stamina+dt*17);
+  staminaEl.style.width=stamina+"%";
 
   if(moving){
     const len=Math.hypot(ax,az);ax/=len;az/=len;
@@ -485,17 +470,25 @@ function updatePlayer(dt){
     const wx=ax*cs-az*sn,wz=ax*sn+az*cs;
     movePlayer(wx*(sprinting?player.sprint:player.speed)*dt,wz*(sprinting?player.sprint:player.speed)*dt);
     walkClock+=dt*(sprinting?14:10);
-    const target=Math.sin(walkClock)*(sprinting?.075:.052)+Math.sin(walkClock*2)*.016;
+    const target=Math.sin(walkClock)*(sprinting?.075:.05)+Math.sin(walkClock*2)*.014;
     bob+=(target-bob)*Math.min(1,dt*12);
-  }else bob+=(0-bob)*Math.min(1,dt*12);
+  }else bob+=(0-bob)*Math.min(1,dt*13);
 
-  if(player.grounded&&keys.has('Space')){player.vy=6.4;player.grounded=false}
-  player.vy-=17*dt;
+  if(player.grounded&&keys.has("Space")&&!keys.has("_jumpLatch")){
+    player.vy=6.15;player.grounded=false;keys.add("_jumpLatch");
+  }
+  if(!keys.has("Space"))keys.delete("_jumpLatch");
+
+  player.vy-=16.8*dt;
   player.y+=player.vy*dt;
   if(player.y<=1.72){player.y=1.72;player.vy=0;player.grounded=true}
 }
 
-function updateCamera(){
+function updateCamera(dt){
+  if(!camera)return;
+  const blend=1-Math.pow(.0008,Math.max(.001,dt||.016));
+  yaw+=(targetYaw-yaw)*blend;
+  pitch+=(targetPitch-pitch)*blend;
   camera.position.set(player.x,player.y+bob,player.z);
   camera.rotation.y=yaw;
   camera.rotation.x=pitch;
@@ -504,105 +497,133 @@ function updateCamera(){
 function catchPlayer(){
   if(gameOver)return;
   gameOver=true;
-  document.exitPointerLock();
-  caught.style.display='flex';
-  status.textContent='Neighbor: PLAYER CAUGHT';
-}
-
-function startGame(){
-  started=true;gameOver=false;menu.style.display='none';caught.style.display='none';
-  gameCanvas.focus();
-  try{gameCanvas.requestPointerLock()}catch(e){}
-  hint.textContent=houseLoaded&&roadLoaded?'Models online. Reach the house.':'3D world active. Models continue loading.';
+  keys.clear();
+  try{document.exitPointerLock()}catch(err){}
+  caught.style.display="flex";
+  statusEl.textContent="Neighbor: PLAYER CAUGHT";
+  hint.textContent="Press RESTART to try again.";
 }
 
 function resetGame(){
   player.x=0;player.z=10.5;player.y=1.72;player.vy=0;player.grounded=true;
-  yaw=0;pitch=-.06;stamina=100;
+  yaw=0;targetYaw=0;pitch=-.07;targetPitch=-.07;bob=0;stamina=100;
   neighbor.x=patrol[0].x;neighbor.z=patrol[0].z;neighbor.target=null;neighbor.index=0;
-  doorClosed=true;gameOver=false;caught.style.display='none';
-  started=true;menu.style.display='none';hint.textContent='Reach the front door. E opens it.';
-  gameCanvas.requestPointerLock();
+  doorOpen=false;gameOver=false;caught.style.display="none";started=true;
+  statusEl.textContent="Neighbor: PATROLLING";
+  objective.textContent="Objective: Reach the front door.";
+  hint.textContent="Reach the front door. Press E near the door.";
+  staminaEl.style.width="100%";
+  gameCanvas.focus();
+  try{gameCanvas.requestPointerLock()}catch(err){}
 }
 
-function showProblem(msg){
-  problem.textContent=msg;
-  problem.style.display='block';
-  setTimeout(()=>problem.style.display='none',9000);
-}
-
-play.addEventListener('click',startGame);
-restart.addEventListener('click',resetGame);
-
-document.addEventListener('pointerlockchange',()=>{
-  pointerLocked=document.pointerLockElement===gameCanvas;
-});
-
-document.addEventListener('mousemove',e=>{
-  if(!started||gameOver||!pointerLocked)return;
-  yaw-=e.movementX*.0022;
-  pitch-=e.movementY*.0018;
-  pitch=THREE.MathUtils.clamp(pitch,-1.25,1.15);
-});
-
-document.addEventListener('keydown',e=>{
-  if(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight'].includes(e.code))e.preventDefault();
-  keys.add(e.code);
-  if(e.code==='KeyE'&&started&&!gameOver){
-    if(distance(player.x,player.z,0,-7.85)<3.6){
-      doorClosed=!doorClosed;
-      porchLight.intensity=doorClosed?7:12;
-      hint.textContent=doorClosed?'Front door closed.':'Front door open. Explore the house.';
-    }
+function toggleDoor(){
+  if(Math.hypot(player.x,player.z+7.85)>3.6)return;
+  doorOpen=!doorOpen;
+  if(doorOpen){
+    objective.textContent="Objective: Explore the house.";
+    hint.textContent="Front door open. Stay alert.";
+  }else{
+    objective.textContent="Objective: Reach the front door.";
+    hint.textContent="Front door closed.";
   }
-  if(e.code==='KeyR'&&gameOver)resetGame();
+}
+
+async function enterWorld(){
+  if(started)return;
+  play.disabled=true;
+  menuStatus.textContent="Loading world...";
+  menu.style.display="none";
+  boot.style.display="flex";
+  setBoot("Starting the world...");
+  try{
+    THREE=await ensureThree();
+    if(!renderer){
+      setBoot("Building the world...");
+      setupWorld();
+    }
+    ready=true;
+    started=true;
+    gameOver=false;
+    boot.style.display="none";
+    hint.textContent="Reach the front door. Press E near the door.";
+    canvas.focus();
+    try{canvas.requestPointerLock()}catch(err){}
+    loadHouseAsset();
+    loadRoadAsset();
+  }catch(err){
+    console.error(err);
+    menu.style.display="flex";
+    boot.style.display="none";
+    play.disabled=false;
+    menuStatus.textContent="Could not start the 3D engine.";
+    showProblem("The 3D engine could not start. The page itself is working; check that hardware acceleration is enabled in Chrome.");
+  }
+}
+
+play.addEventListener("click",function(e){
+  e.preventDefault();
+  enterWorld();
+});
+restart.addEventListener("click",resetGame);
+
+document.addEventListener("pointerlockchange",function(){
+  pointerLocked=document.pointerLockElement===canvas;
 });
 
-document.addEventListener('keyup',e=>{
+document.addEventListener("mousemove",function(e){
+  if(!started||gameOver||!pointerLocked)return;
+  targetYaw-=e.movementX*.0021;
+  targetPitch-=e.movementY*.0017;
+  targetPitch=THREE.MathUtils.clamp(targetPitch,-1.2,1.12);
+});
+
+document.addEventListener("keydown",function(e){
+  if(["KeyW","KeyA","KeyS","KeyD","Space","ShiftLeft","ShiftRight"].includes(e.code))e.preventDefault();
+  if(e.code==="KeyR"&&!e.repeat&&gameOver){resetGame();return}
+  if(e.code==="KeyE"&&!e.repeat&&started&&!gameOver){toggleDoor();return}
+  keys.add(e.code);
+});
+
+document.addEventListener("keyup",function(e){
   keys.delete(e.code);
-  if(['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ShiftRight'].includes(e.code))e.preventDefault();
+  if(["KeyW","KeyA","KeyS","KeyD","Space","ShiftLeft","ShiftRight"].includes(e.code))e.preventDefault();
 });
 
-gameCanvas.addEventListener('click',()=>{
-  if(started&&!gameOver)gameCanvas.requestPointerLock();
+canvas.addEventListener("click",function(){
+  if(started&&!gameOver&&!pointerLocked){
+    try{canvas.requestPointerLock()}catch(err){}
+  }
 });
 
-addEventListener('resize',()=>{
+window.addEventListener("resize",function(){
+  if(!renderer||!camera)return;
   renderer.setSize(innerWidth,innerHeight,false);
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
 });
 
-let startupOK=true;
-try{
-  // Renderer exists and the first frame can be drawn immediately.
-  updateCamera();
-  renderer.render(scene,camera);
-  boot.style.display='none';
-}catch(err){
-  startupOK=false;
-  console.error(err);
-  boot.textContent='3D renderer failed to start.';
-  showProblem('WebGL could not start in this browser.');
-}
-
-if(startupOK){
-  Promise.resolve().then(function(){return loadHouse()}).catch(function(err){console.warn(err)});
-  Promise.resolve().then(function(){return loadRoad()}).catch(function(err){console.warn(err)});
-  requestAnimationFrame(loop);
-}
+document.addEventListener("visibilitychange",function(){
+  keys.clear();
+  last=performance.now();
+});
 
 function loop(now){
-  const dt=Math.min(.05,(now-last)/1000);
+  const dt=Math.min(.05,Math.max(.001,(now-last)/1000));
   last=now;
-  if(started&&!gameOver){
-    updatePlayer(dt);
-    updateNeighbor(dt);
-  }
-  updateCamera();
-  renderer.render(scene,camera);
+  if(started&&!gameOver)updatePlayer(dt);
+  if(started&&!gameOver&&neighborMesh)updateNeighbor(dt);
+  updateCamera(dt);
+  if(renderer&&scene&&camera)renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
+
+boot.style.display="none";
+menu.style.display="flex";
+play.disabled=false;
+requestAnimationFrame(loop);
+
+})();
 </script>
 </body>
 </html>
