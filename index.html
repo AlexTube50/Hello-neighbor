@@ -21,6 +21,8 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
  font-size:20px;font-weight:800;cursor:pointer
 }
 #play:hover{background:#ddd}
+#boot{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-size:18px;letter-spacing:.3px}
+#play:disabled{opacity:.45;cursor:wait}
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;color:#fff}
 #objective,#status,#hint{
  position:absolute;background:rgba(0,0,0,.54);border-radius:8px;padding:9px 12px;
@@ -43,6 +45,7 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 </style>
 </head>
 <body>
+<div id="boot">Loading game...</div>
 <div id="menu">
   <div id="menuBox">
     <h1>Hello Neighbor: The dark secrets</h1>
@@ -77,6 +80,7 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', {alpha:false});
+ctx.imageSmoothingEnabled = true;
 const menu = document.getElementById('menu');
 const playButton = document.getElementById('play');
 const blackout = document.getElementById('blackout');
@@ -84,10 +88,11 @@ const restartButton = document.getElementById('restartButton');
 const objective = document.getElementById('objective');
 const status = document.getElementById('status');
 const hint = document.getElementById('hint');
+const boot = document.getElementById('boot');
 const staminaBar = document.getElementById('stamina');
 
 let W=innerWidth, H=innerHeight;
-let started=false, gameOver=false;
+let started=false, gameOver=false, gameReady=false;
 let yaw=0, pitch=0;
 let cameraBob=0, walkCycle=0, elapsed=0, stamina=100;
 let lastTime=performance.now();
@@ -96,7 +101,7 @@ const keys=new Set();
 
 const FOV=Math.PI/3;
 const HALF_FOV=FOV/2;
-const RAYS=Math.max(320,Math.min(560,Math.floor(innerWidth*.45)));
+const RAYS=Math.max(900,Math.min(1600,Math.floor(innerWidth*1.05)));
 let zBuffer=new Float32Array(RAYS);
 
 const player={
@@ -159,6 +164,7 @@ function resize(){
   canvas.style.width=W+'px';
   canvas.style.height=H+'px';
   ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  ctx.imageSmoothingEnabled=true;
   W=innerWidth; H=innerHeight;
 }
 addEventListener('resize',resize);
@@ -314,6 +320,8 @@ function caught(){
 function resetGame(){
   player.x=0;
   player.y=9.2;
+  player.h=1.72;
+  player.h=1.72;
   player.vy=0;
   player.grounded=true;
   stamina=100;
@@ -355,6 +363,8 @@ function startGame(){
   canvas.focus();
   try{ canvas.requestPointerLock(); }catch(e){}
 }
+playButton.disabled=true;
+playButton.textContent='LOADING...';
 playButton.addEventListener('click',startGame);
 restartButton.addEventListener('click',resetGame);
 
@@ -567,6 +577,8 @@ function drawFloor(){
       const b=Math.max(38,Math.min(68,49+n*7));
       ctx.fillStyle='rgb('+r+','+g+','+b+')';
     }
+    const depthFade=Math.min(.62,Math.max(0,(dist-8)/65));
+    ctx.fillStyle='rgba(80,92,96,'+depthFade+')';
     ctx.fillRect(0,sy,W,3);
   }
 
@@ -622,7 +634,7 @@ function renderWalls(){
     dist*=Math.cos(cameraX*FOV);
     zBuffer[i]=dist;
 
-    const wallH=Math.min(H*1.8,(player.h/dist)*H*1.35);
+    const wallH=Math.min(H*2.0,(player.h/dist)*H*1.48);
     const top=horizon-wallH;
     const bottom=horizon+wallH*.05;
     const sx=player.x+dx*(dist+.03);
@@ -800,11 +812,25 @@ function loop(now){
     updateNeighbor(dt);
   }
   render();
+  if(!gameReady){
+    gameReady=true;
+    boot.style.display='none';
+    playButton.disabled=false;
+    playButton.textContent='PLAY';
+  }
   requestAnimationFrame(loop);
 }
 
 requestAnimationFrame(loop);
+
+window.addEventListener('error', (event) => {
+  if(!gameReady){
+    boot.textContent='Game failed to start. Press Ctrl+Shift+R to retry.';
+    boot.style.background='#140000';
+  }
+});
 })();
+
 </script>
 </body>
 </html>

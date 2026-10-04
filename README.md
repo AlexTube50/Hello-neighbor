@@ -15,7 +15,7 @@ https://alextube50.github.io/Hello-neighbor/
 - R — restart after being caught
 
 ## Current game structure
-The game has a self-contained browser renderer with no required external 3D libraries. This keeps the game playable even if optional imported models are unavailable.
+The game has a self-contained browser renderer with no required external 3D libraries. The renderer now uses high-resolution ray columns and a deterministic startup check. This keeps the game playable even if optional imported models are unavailable.
 
 The player starts on the grass behind the house, opposite the road.
 
