@@ -83,9 +83,9 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
     scene.fog = new THREE.Fog(0x9db7ca, 45, 150);
 
     camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 300);
-    camera.position.set(0,1.75,-25);
+    camera.position.set(0,1.75,30);
     camera.rotation.order = 'YXZ';
-    camera.rotation.set(0,Math.PI,0);
+    camera.rotation.set(0,0,0);
 
     renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(innerWidth, innerHeight);
@@ -107,9 +107,8 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
     clock = new THREE.Clock();
     loading.textContent = 'Game ready — click PLAY';
     requestAnimationFrame(loop);
-
-    // The supplied FBX is optional. Its load failure is caught so it cannot blank the game.
-    loadAssets();
+    // Custom assets load after the scene is already running. A failed asset cannot blank the game.
+    setTimeout(loadAssets, 50);
   }
 
   function addWorld(){
@@ -406,6 +405,7 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
   }
 
   function loadAssets(){
+    try {
     let loadedHouse=false;
     const houseLoader = new FBXLoader();
     houseLoader.setResourcePath('./assets/house-textures/');
@@ -415,11 +415,6 @@ import { ColladaLoader } from "three/addons/loaders/ColladaLoader.js";
       scene.add(obj);
       loadedHouse=true;
       objective.textContent='Objective: Explore the house and avoid the Neighbor.';
-      // Spawn on the side opposite the road/front: behind the house.
-      camera.position.set(0,1.75,30);
-      yaw=Math.PI;
-      pitch=0;
-      camera.rotation.set(0,Math.PI,0);
     }, undefined, () => {
       // Keep the built-in house if the uploaded model is unavailable.
     });
