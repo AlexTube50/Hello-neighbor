@@ -5,300 +5,420 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hello Neighbor: The Murder</title>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;font-family:Arial,sans-serif}
-canvas{display:block;width:100%;height:100%}
-#ui{position:fixed;inset:0;color:#fff;pointer-events:none}
-#crosshair{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-4px;border:1px solid white;border-radius:50%}
-#objective,#status,#prompt{position:absolute;background:rgba(0,0,0,.55);border-radius:8px}
-#objective{left:16px;top:16px;padding:10px 13px}
-#status{right:16px;top:16px;padding:10px 13px}
-#prompt{left:50%;bottom:12%;transform:translateX(-50%);padding:9px 13px}
-#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);z-index:5}
-#card{width:min(560px,90vw);background:#181818;color:#eee;padding:30px;border-radius:12px;text-align:center}
-button{padding:12px 24px;border:0;border-radius:8px;font-size:16px;cursor:pointer}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101418;font-family:Arial,sans-serif}
+canvas{display:block}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.78);z-index:10}
+#card{width:min(620px,90vw);padding:30px;border-radius:16px;background:#17191d;color:#fff;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+#card h1{margin-top:0}
+button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:17px;cursor:pointer}
+#hud{position:fixed;inset:0;color:#fff;pointer-events:none;z-index:5}
+#objective,#status,#message{position:absolute;background:rgba(0,0,0,.55);border-radius:8px;padding:10px 13px}
+#objective{left:16px;top:16px}
+#status{right:16px;top:16px}
+#message{left:50%;bottom:12%;transform:translateX(-50%);min-width:180px;text-align:center}
+#crosshair{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border:1px solid #fff;border-radius:50%}
+#loading{position:fixed;left:50%;top:10%;transform:translateX(-50%);z-index:11;color:#fff;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:8px}
 </style>
 </head>
 <body>
-<div id="start"><div id="card">
-<h1>Hello Neighbor: The Murder</h1>
-<p>Playable browser game. Explore the house and avoid the Neighbor.</p>
-<p><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump · <b>E</b> door · <b>R</b> restart</p>
-<button id="play">PLAY</button>
-</div></div>
-<div id="loading" style="position:fixed;left:50%;top:10%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:#fff;padding:8px 12px;border-radius:8px;z-index:3">Loading game...</div><div id="ui"><div id="crosshair"></div><div id="objective">Objective: Get inside the house and explore.</div><div id="status">Neighbor: PATROLLING</div><div id="prompt"></div></div>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
-<script type="module">
-import * as THREE from "three";
-import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/loaders/FBXLoader.js";
+<div id="loading">Starting game...</div>
+<div id="start">
+  <div id="card">
+    <h1>Hello Neighbor: The Murder</h1>
+    <p>Explore the house, open the door, and avoid the Neighbor.</p>
+    <p><b>WASD</b> move &nbsp; <b>Mouse</b> look &nbsp; <b>Shift</b> sprint &nbsp; <b>Space</b> jump &nbsp; <b>E</b> door &nbsp; <b>R</b> restart</p>
+    <button id="play" type="button">PLAY</button>
+  </div>
+</div>
+<div id="hud">
+  <div id="crosshair"></div>
+  <div id="objective">Objective: Get inside the house and explore.</div>
+  <div id="status">Neighbor: PATROLLING</div>
+  <div id="message"></div>
+</div>
 
-const start=document.getElementById('start');
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x9db6c7);
-scene.fog=new THREE.Fog(0x9db6c7,45,140);
+<script src="https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.min.js"></script>
+<script>
+(() => {
+  'use strict';
 
-const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.05,250);
-camera.position.set(0,1.75,19);
+  const $ = (id) => document.getElementById(id);
+  const start = $('start');
+  const loading = $('loading');
+  const objective = $('objective');
+  const status = $('status');
+  const message = $('message');
+  const play = $('play');
 
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.shadowMap.enabled=true;
-renderer.outputColorSpace=THREE.SRGBColorSpace;
+  let scene, camera, renderer, clock;
+  let yaw = 0, pitch = 0, verticalVelocity = 0, grounded = true;
+  let gameOver = false;
+  let neighbor, doorPivot, doorOpen = false;
+  let target = null, patrolIndex = 0;
+  const keys = new Set();
+  const solids = [];
 
-scene.add(new THREE.HemisphereLight(0xd8ecff,0x4d433b,1.6));
-const sun=new THREE.DirectionalLight(0xfff0cf,2);
-sun.position.set(-25,35,20);sun.castShadow=true;scene.add(sun);
+  function mat(color, roughness=0.85){
+    return new THREE.MeshStandardMaterial({color, roughness});
+  }
 
-const clock=new THREE.Clock();
-camera.rotation.order='YXZ';
-let yaw=0;
-let pitch=0;
-const isLocked=()=>document.pointerLockElement===document.body;
-const solids=[];
-const doors=[];
-const houseRoot=new THREE.Group();
-houseRoot.name='ProceduralHouseFallback';
-scene.add(houseRoot);
-const keys=new Set();
-let vy=0,grounded=true,gameOver=false;
-let neighbor,target;
-let patrolIndex=0;
+  function addBox(name, x,y,z, w,h,d, color, collision=true, parent=scene){
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(color));
+    mesh.name = name;
+    mesh.position.set(x,y,z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    parent.add(mesh);
+    if(collision) solids.push(mesh);
+    return mesh;
+  }
 
-function material(c){return new THREE.MeshStandardMaterial({color:c,roughness:.82});}
-function box(name,x,y,z,w,h,d,c,collide=true){
- const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material(c));
- m.name=name;m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;houseRoot.add(m);
- if(collide)solids.push(m);
- return m;
-}
-function addHouse(){
- box('Ground',0,-.4,0,70,.8,70,0x5d694b);
- box('FrontWall',0,4,-9,34,8,1,0xb9a47e);
- box('BackWall',0,4,10,34,8,1,0xa99772);
- box('LeftWall',-17,4,.5,1,8,20,0x9d875f);
- box('RightWall',17,4,.5,1,8,20,0x9d875f);
- box('HallWall1',-6,4,1,1,8,13,0x91805f);
- box('HallWall2',7,4,-1,1,8,11,0x91805f);
- box('RoomWall',0,4,7,13,8,1,0x806f52);
- box('UpperFloor',4,7.2,-1,12,.5,9,0x6e5c48);
- for(let i=0;i<8;i++)box('Step'+i,11-i*.7,.35+i*.55,4-i*.9,3,.7,2.5,0x7a644e);
- const pivot=new THREE.Group();pivot.position.set(0,2.1,-9.5);houseRoot.add(pivot);
- const slab= new THREE.Mesh(new THREE.BoxGeometry(2.6,4.2,.35),material(0x4e372a));
- slab.position.x=1.3;slab.castShadow=true;pivot.add(slab);
- doors.push({pivot,open:false,start:0,end:-Math.PI/2});
-}
+  function init(){
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x9db7ca);
+    scene.fog = new THREE.Fog(0x9db7ca, 45, 150);
 
-function addRoadAndGrass(){
- const environment=new THREE.Group();
- environment.name='RoadAndGrass';
+    camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 300);
+    camera.position.set(0,1.75,21);
+    camera.rotation.order = 'YXZ';
 
- const grassMat=new THREE.MeshStandardMaterial({color:0x4f6f3b,roughness:1});
- const grass=new THREE.Mesh(new THREE.PlaneGeometry(120,120),grassMat);
- grass.rotation.x=-Math.PI/2;
- grass.position.set(0,-0.03,2);
- grass.receiveShadow=true;
- environment.add(grass);
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
 
- const roadMat=new THREE.MeshStandardMaterial({color:0x373737,roughness:.95});
- const road=new THREE.Mesh(new THREE.PlaneGeometry(100,10),roadMat);
- road.rotation.x=-Math.PI/2;
- road.position.set(0,0.01,-15);
- road.receiveShadow=true;
- environment.add(road);
+    scene.add(new THREE.HemisphereLight(0xcfe7ff,0x51483d,1.65));
+    const sun = new THREE.DirectionalLight(0xfff0d0,2.1);
+    sun.position.set(-30,40,25);
+    sun.castShadow = true;
+    scene.add(sun);
 
- const lineMat=new THREE.MeshStandardMaterial({color:0xe9e0b5,roughness:.8});
- for(let x=-45;x<46;x+=6){
-   const line=new THREE.Mesh(new THREE.BoxGeometry(3.2,.035,.12),lineMat);
-   line.position.set(x,0.035,-15);
-   line.receiveShadow=true;
-   environment.add(line);
- }
+    addWorld();
+    addNeighbor();
+    addDoor();
 
- const edgeMat=new THREE.MeshStandardMaterial({color:0xb9b9b9,roughness:.9});
- for(const z of [-10,-20]){
-   const edge=new THREE.Mesh(new THREE.BoxGeometry(100,.08,.3),edgeMat);
-   edge.position.set(0,0.045,z);
-   edge.receiveShadow=true;
-   environment.add(edge);
- }
+    clock = new THREE.Clock();
+    loading.textContent = 'Game ready — click PLAY';
+    requestAnimationFrame(loop);
 
- // Driveway from the road toward the house entrance.
- const driveway=new THREE.Mesh(new THREE.PlaneGeometry(7,10),new THREE.MeshStandardMaterial({color:0x555555,roughness:.95}));
- driveway.rotation.x=-Math.PI/2;
- driveway.position.set(0,0.015,-4.8);
- driveway.receiveShadow=true;
- environment.add(driveway);
+    // The supplied FBX is optional. Its load failure is caught so it cannot blank the game.
+    loadFBXSafely();
+  }
 
- // A simple paved path from the driveway to the front door.
- const pathMat=new THREE.MeshStandardMaterial({color:0x8d8d86,roughness:.9});
- const path=new THREE.Mesh(new THREE.PlaneGeometry(3,6),pathMat);
- path.rotation.x=-Math.PI/2;
- path.position.set(0,0.02,-9.2);
- path.receiveShadow=true;
- environment.add(path);
+  function addWorld(){
+    addBox('Grass',0,-0.55,0,100,1,100,0x53733e,true);
 
- scene.add(environment);
-}
+    // Road in front of the house.
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(100,10), mat(0x3a3a3a,1));
+    road.rotation.x = -Math.PI/2;
+    road.position.set(0,0.015,-15);
+    road.receiveShadow = true;
+    scene.add(road);
 
-function makeNeighbor(){
- const g=new THREE.Group();
- const body=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.4,.75),material(0x2d4f3b));body.position.y=1.2;g.add(body);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.46,18,18),material(0xc88c69));head.position.y=2.8;g.add(head);
- const hat=new THREE.Mesh(new THREE.ConeGeometry(.55,.65,4),material(0x253044));hat.position.y=3.35;hat.rotation.y=Math.PI/4;g.add(hat);
- g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
- g.position.set(-11,0,4);scene.add(g);return g;
-}
-addHouse();
-addRoadAndGrass();
-document.getElementById('loading').textContent='Game ready — click PLAY';
+    // Road edge lines.
+    for(const z of [-10,-20]){
+      const edge = addBox('RoadEdge',0,0.045,z,100,0.06,0.22,0xc8c8c8,false);
+    }
 
-// Load the supplied Act 1 FBX when it is uploaded to assets/House_Hello_Neighbor_Act1.fbx.
-// The fallback procedural house stays visible if the browser cannot load the asset.
-const fbxLoader = new FBXLoader();
-fbxLoader.setPath('./assets/');
-fbxLoader.setResourcePath('./assets/textures/');
-fbxLoader.load(
-  'House_Hello_Neighbor_Act1.fbx',
-  (model) => {
-    model.name = 'Act1HouseModel';
-    model.scale.setScalar(0.01);
-    model.traverse((o) => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-        if (o.material) {
-          o.material.side = THREE.DoubleSide;
-        }
-      }
+    // Center markings.
+    for(let x=-46;x<=46;x+=7){
+      addBox('RoadLine',x,0.045,-15,3.4,0.06,0.16,0xe6dfaa,false);
+    }
+
+    // Driveway.
+    const driveway = new THREE.Mesh(new THREE.PlaneGeometry(7,11), mat(0x565656,1));
+    driveway.rotation.x = -Math.PI/2;
+    driveway.position.set(0,0.02,-4.9);
+    driveway.receiveShadow = true;
+    scene.add(driveway);
+
+    // House shell / simple collision-safe fallback.
+    addBox('FrontWall',0,4,-9,34,8,1,0xb8a174,true);
+    addBox('BackWall',0,4,10,34,8,1,0xa99772,true);
+    addBox('LeftWall',-17,4,0,1,8,20,0x9f885f,true);
+    addBox('RightWall',17,4,0,1,8,20,0x9f885f,true);
+    addBox('HallLeft',-6,4,1,1,8,13,0x8f7b5a,true);
+    addBox('HallRight',7,4,-1,1,8,11,0x8f7b5a,true);
+    addBox('BackRoomWall',0,4,7,13,8,1,0x7f6c4f,true);
+
+    // Upper floor and stairs.
+    addBox('UpperFloor',4,7.2,-1,12,.5,9,0x6d5944,true);
+    for(let i=0;i<8;i++){
+      addBox('Step'+i,11-i*0.7,0.35+i*0.55,4-i*0.9,3,.7,2.5,0x79634c,true);
+    }
+  }
+
+  function addDoor(){
+    doorPivot = new THREE.Group();
+    doorPivot.position.set(0,2.1,-9.5);
+    scene.add(doorPivot);
+
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(2.6,4.2,.35), mat(0x4b3427));
+    slab.position.x = 1.3;
+    slab.castShadow = true;
+    slab.receiveShadow = true;
+    doorPivot.add(slab);
+  }
+
+  function addNeighbor(){
+    neighbor = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.2,2.4,.75),mat(0x2c503b));
+    body.position.y = 1.2;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.46,18,18),mat(0xc98d6a));
+    head.position.y = 2.8;
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(.55,.65,4),mat(0x283049));
+    hat.position.y = 3.35;
+    hat.rotation.y = Math.PI/4;
+    neighbor.add(body,head,hat);
+    neighbor.position.set(-11,0,4);
+    neighbor.traverse(o => { if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
+    scene.add(neighbor);
+  }
+
+  const patrol = [
+    new THREE.Vector3(-11,0,4),
+    new THREE.Vector3(-11,0,-5),
+    new THREE.Vector3(4,0,-5),
+    new THREE.Vector3(11,0,5),
+    new THREE.Vector3(3,0,7)
+  ];
+
+  function lock(){
+    document.body.requestPointerLock().catch(() => {
+      start.style.display='none';
+      message.textContent='Mouse lock was blocked. Click the game screen to activate controls.';
     });
-    scene.add(model);
-    houseRoot.visible = false;
-    document.getElementById('objective').textContent='Objective: Explore the house and avoid the Neighbor.';
-  },
-  undefined,
-  (error) => {
-    console.warn('Act 1 FBX not loaded. Upload assets/House_Hello_Neighbor_Act1.fbx to use the supplied model.', error);
   }
-);
 
-neighbor=makeNeighbor();
-// Collision bounds for the imported house. These are intentionally separate from visual geometry.
-if (!solids.some(s => s.name==='ImportedWallFront')) {
-  box('ImportedWallFront',0,4,-9,34,8,1,0xffffff);
-  box('ImportedWallBack',0,4,10,34,8,1,0xffffff);
-  box('ImportedWallLeft',-17,4,.5,1,8,20,0xffffff);
-  box('ImportedWallRight',17,4,.5,1,8,20,0xffffff);
-}
-houseRoot.children.filter(o=>o.isMesh && o.name.startsWith('ImportedWall')).forEach(o=>{o.visible=false;});
+  play.addEventListener('click', lock);
 
-const patrol=[new THREE.Vector3(-11,0,4),new THREE.Vector3(-11,0,-5),new THREE.Vector3(4,0,-5),new THREE.Vector3(11,0,5),new THREE.Vector3(3,0,7)];
+  document.addEventListener('pointerlockchange', () => {
+    const locked = document.pointerLockElement === document.body;
+    if(locked){
+      start.style.display='none';
+      loading.style.display='none';
+    }else if(!gameOver){
+      start.style.display='flex';
+      loading.style.display='none';
+    }
+  });
 
-function hitAt(pos){
- const r=.34;
- const pbox=new THREE.Box3(new THREE.Vector3(pos.x-r,pos.y,pos.z-r),new THREE.Vector3(pos.x+r,pos.y+1.7,pos.z+r));
- for(const m of solids){if(m.name==='Ground')continue; if(new THREE.Box3().setFromObject(m).intersectsBox(pbox))return true;}
- return false;
-}
-function visibleToPlayer(){
- const eye=neighbor.position.clone();eye.y+=2.5;
- const dir=camera.position.clone().sub(eye);
- const d=dir.length();if(d>18)return false;
- const flat=new THREE.Vector3(dir.x,0,dir.z).normalize();
- const forward=new THREE.Vector3(0,0,-1).applyQuaternion(neighbor.quaternion);forward.y=0;forward.normalize();
- if(d>8 && THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(forward.dot(flat),-1,1)))>60)return false;
- const ray=new THREE.Raycaster(eye,dir.normalize(),0,d);
- const hits=ray.intersectObjects(solids,false);
- return hits.length===0;
-}
-function movePlayer(dt){
- let dir=new THREE.Vector3();
- if(keys.has('KeyW'))dir.z-=1;if(keys.has('KeyS'))dir.z+=1;if(keys.has('KeyA'))dir.x-=1;if(keys.has('KeyD'))dir.x+=1;
- if(dir.lengthSq()){dir.normalize();const y=camera.rotation.y;const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,y,0));dir.applyQuaternion(q);
-  const speed=(keys.has('ShiftLeft')||keys.has('ShiftRight'))?7:4.2;
-  const next=camera.position.clone().addScaledVector(dir,speed*dt);
-  if(!hitAt(next)){camera.position.x=next.x;camera.position.z=next.z;}
- }
- if(grounded&&keys.has('Space')){vy=7;grounded=false}
- vy-=18*dt;camera.position.y+=vy*dt;
- if(camera.position.y<=1.75){camera.position.y=1.75;vy=0;grounded=true;}
-}
-function moveNeighbor(dt){
- let sees=visibleToPlayer();
- if(sees){target=camera.position.clone();document.getElementById('status').textContent='Neighbor: CHASING';}
- else if(target&&neighbor.position.distanceTo(target)>27){target=null;}
- if(!target){target=patrol[patrolIndex];if(neighbor.position.distanceTo(target)<.8)patrolIndex=(patrolIndex+1)%patrol.length;}
- const chasing=document.getElementById('status').textContent.endsWith('CHASING');
- const dir=target.clone().sub(neighbor.position);dir.y=0;
- if(dir.lengthSq()){dir.normalize();neighbor.position.addScaledVector(dir,(chasing?5.6:2.4)*dt);neighbor.lookAt(neighbor.position.clone().add(dir));}
-}
-function interact(){
- let best=null,bestD=3;
- for(const d of doors){const dist=d.pivot.position.distanceTo(camera.position);if(dist<bestD){best=d;bestD=dist;}}
- if(!best)return;
- best.open=!best.open;
- const a=best.open?best.end:best.start;
- const from=best.pivot.rotation.y;const begin=performance.now();
- function animateDoor(t){
-  const x=Math.min((t-begin)/350,1);best.pivot.rotation.y=THREE.MathUtils.lerp(from,a,x);if(x<1)requestAnimationFrame(animateDoor);
- }
- requestAnimationFrame(animateDoor);
-}
-function reset(){
- camera.position.set(0,1.75,19);neighbor.position.copy(patrol[0]);neighbor.rotation.set(0,0,0);
- target=null;patrolIndex=0;gameOver=false;
- document.getElementById('status').textContent='Neighbor: PATROLLING';
- document.getElementById('objective').textContent='Objective: Get inside the house and explore.';
- document.body.requestPointerLock();
-}
-addEventListener('keydown',e=>{keys.add(e.code);if(e.code==='KeyE'&&isLocked()&&!gameOver)interact();if(e.code==='KeyR'&&gameOver)reset();});
-addEventListener('keyup',e=>keys.delete(e.code));
-const playButton = document.getElementById('play');
-playButton.addEventListener('click', async () => {
-  try {
-    await document.body.requestPointerLock();
-  } catch (err) {
-    console.warn('Pointer lock was blocked:', err);
-    start.style.display='none'; document.getElementById('loading').style.display='none';
+  document.addEventListener('mousemove', e => {
+    if(document.pointerLockElement !== document.body || gameOver) return;
+    yaw -= e.movementX * 0.0023;
+    pitch -= e.movementY * 0.0023;
+    pitch = THREE.MathUtils.clamp(pitch,-1.45,1.45);
+    camera.rotation.set(pitch,yaw,0);
+  });
+
+  document.addEventListener('keydown', e => {
+    keys.add(e.code);
+    if(e.code === 'KeyE' && document.pointerLockElement === document.body && !gameOver) toggleDoor();
+    if(e.code === 'KeyR' && gameOver) restart();
+  });
+
+  document.addEventListener('keyup', e => keys.delete(e.code));
+
+  function playerBlocked(pos){
+    const radius=.34;
+    const playerBox = new THREE.Box3(
+      new THREE.Vector3(pos.x-radius,pos.y,pos.z-radius),
+      new THREE.Vector3(pos.x+radius,pos.y+1.7,pos.z+radius)
+    );
+    for(const s of solids){
+      if(s.name === 'Grass') continue;
+      if(new THREE.Box3().setFromObject(s).intersectsBox(playerBox)) return true;
+    }
+    return false;
   }
-});
 
-document.addEventListener('mousemove',(e)=>{
-  if(!isLocked()) return;
-  yaw -= e.movementX * 0.0022;
-  pitch -= e.movementY * 0.0022;
-  pitch = THREE.MathUtils.clamp(pitch,-1.45,1.45);
-  camera.rotation.set(pitch,yaw,0);
-});
-document.addEventListener('pointerlockchange',()=>{
-  if(isLocked()){
-    document.getElementById('start').style.display='none';
-  }else if(!gameOver){
-    document.getElementById('start').style.display='flex';
+  function movePlayer(dt){
+    let input = new THREE.Vector3();
+    if(keys.has('KeyW')) input.z -= 1;
+    if(keys.has('KeyS')) input.z += 1;
+    if(keys.has('KeyA')) input.x -= 1;
+    if(keys.has('KeyD')) input.x += 1;
+
+    if(input.lengthSq()){
+      input.normalize();
+      const move = new THREE.Vector3(input.x,0,input.z);
+      move.applyEuler(new THREE.Euler(0,yaw,0));
+      const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 7.2 : 4.4;
+      const next = camera.position.clone().addScaledVector(move,speed*dt);
+      if(!playerBlocked(next)){
+        camera.position.x = next.x;
+        camera.position.z = next.z;
+      }
+    }
+
+    if(grounded && keys.has('Space')){
+      verticalVelocity=7;
+      grounded=false;
+    }
+
+    verticalVelocity -= 18*dt;
+    camera.position.y += verticalVelocity*dt;
+    if(camera.position.y <= 1.75){
+      camera.position.y=1.75;
+      verticalVelocity=0;
+      grounded=true;
+    }
   }
-});
 
-function updateUI(){
- if(camera.position.z < 10){
-  document.getElementById('objective').textContent='Objective: Explore the house. Find a way upstairs.';
- }
- if(camera.position.y > 6.5){
-  document.getElementById('objective').textContent='Objective: You reached the upper floor. Keep exploring.';
- }
- let text='';
- for(const d of doors)if(d.pivot.position.distanceTo(camera.position)<3)text=d.open?'E - Close Door':'E - Open Door';
- document.getElementById('prompt').textContent=text;
- if(neighbor.position.distanceTo(new THREE.Vector3(camera.position.x,0,camera.position.z))<1.25){
-  gameOver=true;document.exitPointerLock();
-  document.getElementById('status').textContent='Neighbor: PLAYER CAUGHT';
-  document.getElementById('objective').textContent='The Neighbor caught you. Press R to restart.';
-  document.getElementById('prompt').textContent='';
- }
-}
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);
- if(isLocked()&&!gameOver){movePlayer(dt);moveNeighbor(dt);updateUI();}
- renderer.render(scene,camera);}
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-animate();
+  function hasSight(){
+    const origin = neighbor.position.clone();
+    origin.y += 2.5;
+    const targetPos = camera.position.clone();
+    const delta = targetPos.clone().sub(origin);
+    const distance = delta.length();
+    if(distance > 18) return false;
+
+    const flat = new THREE.Vector3(delta.x,0,delta.z).normalize();
+    const forward = new THREE.Vector3(0,0,-1).applyQuaternion(neighbor.quaternion);
+    forward.y=0;
+    forward.normalize();
+
+    if(distance > 8){
+      const angle = Math.acos(THREE.MathUtils.clamp(forward.dot(flat),-1,1));
+      if(angle > THREE.MathUtils.degToRad(65)) return false;
+    }
+
+    const ray = new THREE.Raycaster(origin,delta.normalize(),0,distance);
+    const hits = ray.intersectObjects(solids,false);
+    return hits.length === 0;
+  }
+
+  function moveNeighbor(dt){
+    if(hasSight()){
+      target = camera.position.clone();
+      status.textContent='Neighbor: CHASING';
+    }else if(target && neighbor.position.distanceTo(target)>28){
+      target=null;
+      status.textContent='Neighbor: PATROLLING';
+    }
+
+    if(!target){
+      target = patrol[patrolIndex];
+      if(neighbor.position.distanceTo(target)<0.9){
+        patrolIndex=(patrolIndex+1)%patrol.length;
+      }
+    }
+
+    const destination = target.clone();
+    const direction = destination.sub(neighbor.position);
+    direction.y=0;
+
+    if(direction.lengthSq()){
+      direction.normalize();
+      const speed = status.textContent.endsWith('CHASING') ? 5.7 : 2.5;
+      neighbor.position.addScaledVector(direction,speed*dt);
+      neighbor.lookAt(neighbor.position.clone().add(direction));
+    }
+  }
+
+  function toggleDoor(){
+    if(doorPivot.position.distanceTo(camera.position)>3) return;
+    doorOpen=!doorOpen;
+    const from=doorPivot.rotation.y;
+    const to=doorOpen?-Math.PI/2:0;
+    const startTime=performance.now();
+    function animateDoor(t){
+      const p=Math.min((t-startTime)/350,1);
+      doorPivot.rotation.y=THREE.MathUtils.lerp(from,to,p);
+      if(p<1) requestAnimationFrame(animateDoor);
+    }
+    requestAnimationFrame(animateDoor);
+    message.textContent = doorOpen ? 'E — Close Door' : 'E — Open Door';
+  }
+
+  function checkState(){
+    if(camera.position.z < 11){
+      objective.textContent='Objective: Explore the house. Find a way upstairs.';
+    }
+    if(camera.position.y > 6.5){
+      objective.textContent='Objective: You reached the upper floor. Keep exploring.';
+    }
+    if(doorPivot.position.distanceTo(camera.position)<3){
+      message.textContent=doorOpen ? 'E — Close Door' : 'E — Open Door';
+    }else{
+      message.textContent='';
+    }
+
+    if(neighbor.position.distanceTo(new THREE.Vector3(camera.position.x,0,camera.position.z))<1.2){
+      gameOver=true;
+      document.exitPointerLock();
+      status.textContent='Neighbor: PLAYER CAUGHT';
+      objective.textContent='The Neighbor caught you. Press R to restart.';
+      message.textContent='';
+    }
+  }
+
+  function restart(){
+    camera.position.set(0,1.75,21);
+    yaw=0; pitch=0;
+    camera.rotation.set(0,0,0);
+    neighbor.position.copy(patrol[0]);
+    target=null; patrolIndex=0;
+    gameOver=false;
+    status.textContent='Neighbor: PATROLLING';
+    objective.textContent='Objective: Get inside the house and explore.';
+    doorPivot.rotation.y=0;
+    doorOpen=false;
+    lock();
+  }
+
+  async function loadFBXSafely(){
+    try{
+      const mod = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/loaders/FBXLoader.js');
+      const loader = new mod.FBXLoader();
+      loader.setResourcePath('./assets/textures/');
+      loader.load('./assets/House_Hello_Neighbor_Act1.fbx', obj => {
+        obj.scale.setScalar(0.01);
+        obj.position.set(0,0,0);
+        obj.traverse(o => {
+          if(o.isMesh){
+            o.castShadow=true;
+            o.receiveShadow=true;
+            if(o.material) o.material.side=THREE.DoubleSide;
+          }
+        });
+        scene.add(obj);
+        objective.textContent='Objective: Explore the Act 1 house and avoid the Neighbor.';
+      }, undefined, () => {
+        console.info('Optional Act 1 FBX not found; using the built-in house.');
+      });
+    }catch(err){
+      console.info('Optional FBX loader unavailable; using the built-in house.');
+    }
+  }
+
+  function loop(){
+    requestAnimationFrame(loop);
+    const dt=Math.min(clock.getDelta(),0.05);
+    if(document.pointerLockElement === document.body && !gameOver){
+      movePlayer(dt);
+      moveNeighbor(dt);
+      checkState();
+    }
+    renderer.render(scene,camera);
+  }
+
+  addEventListener('resize',() => {
+    if(!camera || !renderer) return;
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+
+  try{
+    init();
+  }catch(err){
+    loading.textContent='Game startup error — refresh the page.';
+    console.error(err);
+  }
+})();
 </script>
 </body>
 </html>

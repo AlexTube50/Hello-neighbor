@@ -1,24 +1,18 @@
 # Hello Neighbor: The Murder
 
-## 🎮 Play the game
+Playable browser prototype deployed from `main`.
 
-**[PLAY HELLO NEIGHBOR: THE MURDER](https://alextube50.github.io/Hello-neighbor/)**
+Game URL:
+https://alextube50.github.io/Hello-neighbor/
 
-This is the playable browser version of the game.
+Controls:
+- WASD: move
+- Mouse: look
+- Shift: sprint
+- Space: jump
+- E: open/close door
+- R: restart after being caught
 
-## Controls
+Every push to `main` automatically triggers the GitHub Pages workflow. After an update deploys, use Ctrl+Shift+R on the game URL to force-refresh the newest version.
 
-- Click **PLAY**
-- **WASD** — move
-- **Mouse** — look around
-- **Shift** — sprint
-- **Space** — jump
-- **E** — open/close the front door
-- **R** — restart after being caught
-
-## GitHub Pages
-
-The repository includes a GitHub Actions workflow that deploys the game to GitHub Pages from the `main` branch.
-
-The Play link above is the expected GitHub Pages address. GitHub Pages must be enabled/deployed in the repository for the link to become live.
-
+The built-in scene is guaranteed to render without the optional FBX asset. If `assets/House_Hello_Neighbor_Act1.fbx` and its texture folder are present, the browser will try to load the imported house after startup.
