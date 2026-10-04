@@ -44,6 +44,7 @@ button{font:inherit}
 #restart{margin-top:20px;padding:11px 30px;border:0;border-radius:9px;background:#fff;color:#111;font-weight:800;cursor:pointer}
 #problem{z-index:90;display:none;inset:auto auto 68px 50%;transform:translateX(-50%);max-width:min(800px,92vw);padding:11px 14px;background:rgba(87,10,10,.95);border:1px solid rgba(255,160,160,.25);border-radius:9px;font-size:13px;text-align:center}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js"></script>
 </head>
 <body>
 <div id="boot">
@@ -120,27 +121,9 @@ function setAssets(){
   assetsEl.innerHTML="House: "+(houseLoaded?"<b>ONLINE</b>":"LOADING")+"<br>Road: "+(roadLoaded?"<b>ONLINE</b>":"LOADING");
 }
 
-function loadScript(src){
-  return new Promise((resolve,reject)=>{
-    const s=document.createElement("script");
-    s.src=src;
-    s.async=true;
-    s.onload=()=>resolve();
-    s.onerror=()=>reject(new Error("Could not load "+src));
-    document.head.appendChild(s);
-  });
-}
-
-async function ensureThree(){
+function ensureThree(){
   if(window.THREE)return window.THREE;
-  setBoot("Loading 3D engine...");
-  try{
-    await loadScript("https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js");
-  }catch(first){
-    await loadScript("https://unpkg.com/three@0.180.0/build/three.min.js");
-  }
-  if(!window.THREE)throw new Error("Three.js is unavailable");
-  return window.THREE;
+  throw new Error("Three.js did not load.");
 }
 
 function addMesh(group,geometry,material,x,y,z,rx,ry,rz){
@@ -529,66 +512,67 @@ function toggleDoor(){
   }
 }
 
-async function enterWorld(){
-  if(started)return;
-  const loadingStarted=performance.now();
-  const minimumLoadMs=10000;
+function enterWorld(){
+  if(started||enterWorld.loading)return;
+  enterWorld.loading=true;
 
   play.disabled=true;
-  menuStatus.textContent="Loading world... 0%";
   menu.style.display="none";
   boot.style.display="flex";
-  setBoot("Loading the 3D world...");
+
+  const loadStart=performance.now();
+  const loadDuration=10000;
+  let worldBuilt=false;
+
+  function countdown(){
+    const elapsed=performance.now()-loadStart;
+    const remaining=Math.max(0,Math.ceil((loadDuration-elapsed)/1000));
+    const percent=Math.min(100,Math.floor((elapsed/loadDuration)*100));
+    setBoot(remaining>0?"Loading the world... "+remaining+"s":"Entering the world...");
+    menuStatus.textContent="Loading world... "+percent+"%";
+    if(remaining<=0){
+      clearInterval(timer);
+      started=true;
+      gameOver=false;
+      enterWorld.loading=false;
+      boot.style.display="none";
+      hint.textContent="Reach the front door. Press E near the door.";
+      canvas.focus();
+      try{canvas.requestPointerLock()}catch(err){}
+    }
+  }
 
   try{
-    THREE=await ensureThree();
-
-    const progressTimer=setInterval(function(){
-      const elapsed=performance.now()-loadingStarted;
-      const pct=Math.min(99,Math.floor((elapsed/minimumLoadMs)*100));
-      setBoot("Loading the 3D world...");
-      menuStatus.textContent="Loading world... "+pct+"%";
-    },100);
+    THREE=ensureThree();
 
     if(!renderer){
-      setBoot("Building the world...");
+      setBoot("Building the 3D world...");
       setupWorld();
+      worldBuilt=true;
     }
 
     ready=true;
 
-    // Start both model downloads during the ten-second loading period.
-    const housePromise=loadHouseAsset().catch(function(err){console.warn("House load:",err)});
-    const roadPromise=loadRoadAsset().catch(function(err){console.warn("Road load:",err)});
+    // These are deliberately background tasks. They can never delay world entry.
+    loadHouseAsset().catch(err=>console.warn("House asset:",err));
+    loadRoadAsset().catch(err=>console.warn("Road asset:",err));
 
-    const remaining=Math.max(0,minimumLoadMs-(performance.now()-loadingStarted));
-    if(remaining>0){
-      setBoot("Finalizing the world...");
-      await new Promise(function(resolve){setTimeout(resolve,remaining)});
-    }
+    setBoot("Loading the world... 10s");
+    menuStatus.textContent="Loading world... 0%";
 
-    clearInterval(progressTimer);
-    menuStatus.textContent="World loaded.";
-    started=true;
-    gameOver=false;
-    boot.style.display="none";
-    hint.textContent="Reach the front door. Press E near the door.";
-    canvas.focus();
-    try{canvas.requestPointerLock()}catch(err){}
-
-    // Keep waiting for assets in the background after the player enters.
-    Promise.allSettled([housePromise,roadPromise]).then(function(){
-      setAssets();
-    });
+    const timer=setInterval(countdown,100);
+    countdown();
   }catch(err){
     console.error(err);
+    enterWorld.loading=false;
     menu.style.display="flex";
     boot.style.display="none";
     play.disabled=false;
-    menuStatus.textContent="Could not start the 3D engine.";
-    showProblem("The 3D engine could not start. The page itself is working; check that hardware acceleration is enabled in Chrome.");
+    menuStatus.textContent="3D engine error.";
+    showProblem("The 3D engine could not start. Please refresh the page and try again.");
   }
 }
+enterWorld.loading=false;
 
 play.addEventListener("click",function(e){
   e.preventDefault();
@@ -650,6 +634,7 @@ function loop(now){
 boot.style.display="none";
 menu.style.display="flex";
 play.disabled=false;
+menuStatus.textContent="3D world ready. Press PLAY.";
 requestAnimationFrame(loop);
 
 })();
