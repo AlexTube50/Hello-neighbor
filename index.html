@@ -51,7 +51,8 @@ button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:1
   const play = $('play');
 
   let scene, camera, renderer, clock;
-  let yaw = 0, pitch = 0, verticalVelocity = 0, grounded = true;
+  let yaw = Math.PI, pitch = 0, verticalVelocity = 0, grounded = true;
+  let started = false;
   let gameOver = false;
   let neighbor, doorPivot, doorOpen = false;
   let target = null, patrolIndex = 0;
@@ -81,6 +82,7 @@ button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:1
     camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.05, 300);
     camera.position.set(0,1.75,-25);
     camera.rotation.order = 'YXZ';
+    camera.rotation.set(0,Math.PI,0);
 
     renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(innerWidth, innerHeight);
@@ -185,21 +187,27 @@ button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:1
     new THREE.Vector3(3,0,7)
   ];
 
-  function lock(){
-    document.body.requestPointerLock().catch(() => {
-      start.style.display='none';
-      message.textContent='Mouse lock was blocked. Click the game screen to activate controls.';
-    });
+  function startGame(){
+    started = true;
+    start.style.display='none';
+    loading.style.display='none';
+    message.textContent='';
+    document.body.requestPointerLock().catch(() => {});
   }
 
-  play.addEventListener('click', lock);
+  play.addEventListener('click', startGame);
+  renderer.domElement?.addEventListener('click', () => {
+    if(started && document.pointerLockElement !== document.body){
+      document.body.requestPointerLock().catch(() => {});
+    }
+  });
 
   document.addEventListener('pointerlockchange', () => {
     const locked = document.pointerLockElement === document.body;
     if(locked){
       start.style.display='none';
       loading.style.display='none';
-    }else if(!gameOver){
+    }else if(!gameOver && !started){
       start.style.display='flex';
       loading.style.display='none';
     }
@@ -366,7 +374,9 @@ button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:1
     objective.textContent='Objective: Get inside the house and explore.';
     doorPivot.rotation.y=0;
     doorOpen=false;
-    lock();
+    started=true;
+    start.style.display='none';
+    document.body.requestPointerLock().catch(() => {});
   }
 
   async function loadFBXSafely(){
@@ -397,7 +407,7 @@ button{border:0;border-radius:10px;padding:13px 28px;font-weight:700;font-size:1
   function loop(){
     requestAnimationFrame(loop);
     const dt=Math.min(clock.getDelta(),0.05);
-    if(document.pointerLockElement === document.body && !gameOver){
+    if(started && !gameOver){
       movePlayer(dt);
       moveNeighbor(dt);
       checkState();
