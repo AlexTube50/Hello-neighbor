@@ -8,3 +8,13 @@ Place the supplied files here:
 The game automatically loads the FBX from `/assets/` and looks for its textures in `/assets/textures/`.
 
 The browser version needs the asset files to be uploaded to the repository because GitHub cannot infer an uploaded ZIP from the game page.
+assets/
+├── house/
+│   ├── House_Hello_Neighbor_Act1.fbx
+│   └── textures/
+│       └── [house textures]
+└── road/
+    ├── road01.dae
+    └── textures/
+        └── [road textures]
+        
