@@ -54,7 +54,7 @@ window.setTimeout(function(){
   var m=document.getElementById('menu');
   if(m)m.style.display='flex';
   var p=document.getElementById('play');
-  if(p)p.disabled=false;
+  if(p){p.disabled=false;p.focus();}
 },1200);
 window.addEventListener('error',function(){
   var b=document.getElementById('boot');
@@ -118,7 +118,7 @@ const renderer=new THREE.WebGLRenderer({
   alpha:false,
   powerPreference:'high-performance',
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
 renderer.setSize(innerWidth,innerHeight,false);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -363,7 +363,7 @@ async function loadRoad(){
     });
 
     const daeText=await dae.async('text');
-    const parsed=new ColladaLoader(manager).parse(daeText,'');
+    const parsed=new THREE.ColladaLoader(manager).parse(daeText,'');
     const model=parsed.scene;
     model.rotation.x=-Math.PI/2;
     model.updateMatrixWorld(true);
@@ -504,7 +504,7 @@ function updateCamera(){
 function catchPlayer(){
   if(gameOver)return;
   gameOver=true;
-  document.exitPointerLock?.();
+  document.exitPointerLock();
   caught.style.display='flex';
   status.textContent='Neighbor: PLAYER CAUGHT';
 }
@@ -512,7 +512,7 @@ function catchPlayer(){
 function startGame(){
   started=true;gameOver=false;menu.style.display='none';caught.style.display='none';
   gameCanvas.focus();
-  try{gameCanvas.requestPointerLock?.()}catch(e){}
+  try{gameCanvas.requestPointerLock()}catch(e){}
   hint.textContent=houseLoaded&&roadLoaded?'Models online. Reach the house.':'3D world active. Models continue loading.';
 }
 
@@ -522,7 +522,7 @@ function resetGame(){
   neighbor.x=patrol[0].x;neighbor.z=patrol[0].z;neighbor.target=null;neighbor.index=0;
   doorClosed=true;gameOver=false;caught.style.display='none';
   started=true;menu.style.display='none';hint.textContent='Reach the front door. E opens it.';
-  gameCanvas.requestPointerLock?.();
+  gameCanvas.requestPointerLock();
 }
 
 function showProblem(msg){
@@ -564,7 +564,7 @@ document.addEventListener('keyup',e=>{
 });
 
 gameCanvas.addEventListener('click',()=>{
-  if(started&&!gameOver)gameCanvas.requestPointerLock?.();
+  if(started&&!gameOver)gameCanvas.requestPointerLock();
 });
 
 addEventListener('resize',()=>{
@@ -587,8 +587,8 @@ try{
 }
 
 if(startupOK){
-  loadHouse();
-  loadRoad();
+  Promise.resolve().then(function(){return loadHouse()}).catch(function(err){console.warn(err)});
+  Promise.resolve().then(function(){return loadRoad()}).catch(function(err){console.warn(err)});
   requestAnimationFrame(loop);
 }
 
@@ -603,7 +603,7 @@ function loop(now){
   renderer.render(scene,camera);
   requestAnimationFrame(loop);
 }
-})();
+}
 </script>
 </body>
 </html>
