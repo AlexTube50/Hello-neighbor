@@ -29,6 +29,9 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 #objective{left:14px;top:14px}
 #status{right:14px;top:14px}
 #hint{left:50%;bottom:25px;transform:translateX(-50%);min-width:180px;text-align:center}
+#staminaWrap{position:absolute;left:14px;bottom:14px;width:180px;height:7px;background:rgba(0,0,0,.55);border-radius:5px;overflow:hidden}
+#stamina{height:100%;width:100%;background:#ddd}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:8;background:radial-gradient(circle,rgba(0,0,0,0) 38%,rgba(0,0,0,.22) 72%,rgba(0,0,0,.65) 100%)}
 #crosshair{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-4px;border:1px solid #fff;border-radius:50%}
 #blackout{
  position:fixed;inset:0;display:none;z-index:30;align-items:center;justify-content:center;
@@ -53,10 +56,12 @@ canvas{display:block;width:100%;height:100%;cursor:crosshair}
 
 <div id="hud">
   <div id="crosshair"></div>
+  <div id="staminaWrap"><div id="stamina"></div></div>
   <div id="objective">Objective: Get inside the house and explore.</div>
   <div id="status">Neighbor: PATROLLING</div>
   <div id="hint"></div>
 </div>
+<div id="vignette"></div>
 
 <div id="blackout">
   <div id="blackoutBox">
@@ -79,18 +84,19 @@ const restartButton = document.getElementById('restartButton');
 const objective = document.getElementById('objective');
 const status = document.getElementById('status');
 const hint = document.getElementById('hint');
+const staminaBar = document.getElementById('stamina');
 
 let W=innerWidth, H=innerHeight;
 let started=false, gameOver=false;
 let yaw=0, pitch=0;
-let cameraBob=0, walkCycle=0, elapsed=0;
+let cameraBob=0, walkCycle=0, elapsed=0, stamina=100;
 let lastTime=performance.now();
 let mouseLook=false;
 const keys=new Set();
 
 const FOV=Math.PI/3;
 const HALF_FOV=FOV/2;
-const RAYS=480;
+const RAYS=Math.max(320,Math.min(560,Math.floor(innerWidth*.45)));
 let zBuffer=new Float32Array(RAYS);
 
 const player={
@@ -164,7 +170,7 @@ function normAngle(a){
   return a;
 }
 function getHorizon(){
-  return getHorizon()+cameraBob;
+  return H*.48+pitch*H*.16+cameraBob;
 }
 function hexToRgb(hex){
   const n=parseInt(hex.slice(1),16);
@@ -310,6 +316,7 @@ function resetGame(){
   player.y=9.2;
   player.vy=0;
   player.grounded=true;
+  stamina=100;
   yaw=0;
   pitch=0;
   neighbor.x=patrol[0].x;
@@ -394,20 +401,29 @@ function updatePlayer(dt){
   if(keys.has('KeyD')) ax+=1;
 
   const moving=!!(ax||ay);
+  const wantsSprint=keys.has('ShiftLeft')||keys.has('ShiftRight');
+  const sprinting=wantsSprint && moving && stamina>1;
+  if(sprinting) stamina=Math.max(0,stamina-dt*24);
+  else stamina=Math.min(100,stamina+dt*17);
+  staminaBar.style.width=stamina+'%';
+
   if(moving){
     const l=Math.hypot(ax,ay);
     ax/=l; ay/=l;
     const cs=Math.cos(yaw),sn=Math.sin(yaw);
     const worldX=ax*cs-ay*sn;
     const worldY=ax*sn+ay*cs;
-    const sprinting=keys.has('ShiftLeft')||keys.has('ShiftRight');
     const speed=sprinting?player.sprint:player.speed;
+
+    // Small acceleration/deceleration makes movement feel less robotic.
     moveWithCollision(worldX*speed*dt,worldY*speed*dt);
-    walkCycle += dt*(sprinting?13:9);
-    const targetBob=Math.sin(walkCycle)*2.2+(Math.sin(walkCycle*0.5)*0.8);
-    cameraBob += (targetBob-cameraBob)*Math.min(1,dt*10);
+
+    walkCycle += dt*(sprinting?15:10);
+    const targetBob=Math.sin(walkCycle)*((sprinting?2.8:1.9))+
+      Math.sin(walkCycle*2.03)*.55;
+    cameraBob += (targetBob-cameraBob)*Math.min(1,dt*12);
   }else{
-    cameraBob += (0-cameraBob)*Math.min(1,dt*10);
+    cameraBob += (0-cameraBob)*Math.min(1,dt*12);
   }
 
   if(player.grounded && keys.has('Space')){
@@ -423,6 +439,76 @@ function updatePlayer(dt){
   }
 }
 
+function drawEnvironmentDetails(){
+  const horizon=getHorizon();
+
+  // Distant hills.
+  ctx.fillStyle='rgba(28,44,37,.45)';
+  ctx.beginPath();
+  ctx.moveTo(0,horizon);
+  for(let x=0;x<=W;x+=70){
+    const y=horizon-18-Math.sin(x*.008)*14-Math.sin(x*.021)*9;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(W,horizon);
+  ctx.closePath();
+  ctx.fill();
+
+  // Moon and a few subtle stars for a late-evening horror atmosphere.
+  if(horizon>80){
+    ctx.fillStyle='rgba(245,245,220,.9)';
+    ctx.beginPath();
+    ctx.arc(W*.82,H*.16,Math.min(W,H)*.045,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.55)';
+    for(let i=0;i<45;i++){
+      const sx=(i*137.7)%W, sy=(i*53.2)%(H*.33);
+      const r=1+(i%3)*.35;
+      ctx.fillRect(sx,sy,r,r);
+    }
+  }
+
+  // Wooden fence posts along the yard.
+  for(let x=-18;x<=18;x+=3){
+    const p=worldToScreen(x,1.8);
+    if(!p||p.y<0||p.y>H) continue;
+    const height=Math.max(6,20/(Math.abs(p.y-horizon)+1)*H);
+    ctx.fillStyle='#594534';
+    ctx.fillRect(p.x-2,p.y-height,4,height);
+  }
+
+  // Trees on the far side of the road.
+  const trees=[[-18,-5],[-13,-1],[15,-2],[20,3],[-20,6],[18,7]];
+  for(const [tx,ty] of trees){
+    const p=worldToScreen(tx,ty);
+    if(!p) continue;
+    const size=Math.max(14,90/Math.max(4,Math.hypot(tx-player.x,ty-player.y)));
+    ctx.fillStyle='#2d241d';
+    ctx.fillRect(p.x-size*.06,p.y-size*.45,size*.12,size*.65);
+    ctx.fillStyle='#1f3528';
+    ctx.beginPath();
+    ctx.arc(p.x,p.y-size*.55,size*.42,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='rgba(54,79,56,.7)';
+    ctx.beginPath();
+    ctx.arc(p.x-size*.22,p.y-size*.62,size*.26,0,Math.PI*2);
+    ctx.arc(p.x+size*.2,p.y-size*.58,size*.29,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // Porch/front light glow.
+  if(Math.abs(player.y-(-4))<20){
+    const p=worldToScreen(0,-3.95);
+    if(p){
+      const glow=ctx.createRadialGradient(p.x,p.y,1,p.x,p.y,Math.min(W,H)*.16);
+      glow.addColorStop(0,'rgba(255,213,143,.15)');
+      glow.addColorStop(1,'rgba(255,213,143,0)');
+      ctx.fillStyle=glow;
+      ctx.fillRect(p.x-Math.min(W,H)*.16,p.y-Math.min(W,H)*.16,Math.min(W,H)*.32,Math.min(W,H)*.32);
+    }
+  }
+}
+
 function drawSky(){
   const horizon=getHorizon();
   const sky=ctx.createLinearGradient(0,0,0,horizon);
@@ -431,8 +517,16 @@ function drawSky(){
   ctx.fillStyle=sky;
   ctx.fillRect(0,0,W,horizon);
 
-  ctx.fillStyle='#2c3c2e';
+  ctx.fillStyle='#293a2e';
   ctx.fillRect(0,horizon,W,H-horizon);
+  // Thin cloud layers.
+  ctx.fillStyle='rgba(55,66,70,.17)';
+  for(let i=0;i<6;i++){
+    const cy=H*.08+i*H*.055+Math.sin(elapsed*.05+i)*7;
+    ctx.beginPath();
+    ctx.ellipse(W*(.12+i*.17),cy,Math.min(W,H)*.12,Math.min(W,H)*.022,0,0,Math.PI*2);
+    ctx.fill();
+  }
 }
 
 function worldToScreen(wx,wy){
@@ -507,6 +601,13 @@ function drawRoadMarkings(){
     ctx.beginPath();
     ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.lineTo(p3.x,p3.y);ctx.lineTo(p4.x,p4.y);
     ctx.fill();
+  }
+
+  for(let y=ROAD_Y-1.2;y>ROAD_Y-65;y-=8){
+    const a=worldToScreen(-3.65,y);
+    if(a){ctx.fillStyle='rgba(220,220,205,.6)';ctx.fillRect(a.x-1,a.y-2,2,4);}
+    const b=worldToScreen(3.65,y);
+    if(b){ctx.fillStyle='rgba(220,220,205,.6)';ctx.fillRect(b.x-1,b.y-2,2,4);}
   }
 }
 
@@ -681,6 +782,7 @@ function drawAtmosphere(){
 
 function render(){
   drawSky();
+  drawEnvironmentDetails();
   drawFloor();
   drawRoadMarkings();
   renderWalls();
